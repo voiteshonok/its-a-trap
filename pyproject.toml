@@ -1,0 +1,15 @@
+ [project]
+ name = "its-a-trap-video-picker"
+ version = "0.1.0"
+ description = "Simple PyQt app to select a video and store its path."
+requires-python = ">=3.9"
+ dependencies = [
+  "PyQt6==6.9.1",
+  "numpy",
+  "onnxruntime",
+  "opencv-python",
+ ]
+ 
+ [project.scripts]
+ video-picker = "video_picker.app:main"
+ 
