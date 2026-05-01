@@ -9,6 +9,13 @@ import cv2
 import numpy as np
 import onnxruntime
 
+from .utils import (
+    configure_ort_cpu_session_threads_from_cores,
+    crop_norm_xyxy_from_bgr,
+    load_txtset_labels_last_field,
+    run_onnx_with_stacked_batch,
+    softmax_2d,
+)
 
 DEFAULT_MEGADETECTOR_PATH = "./models/md_v5a_1_3_640_640_static.onnx"
 DEFAULT_SPECIESNET_LABELS_PATH = "./static/spicesNet_labels_v401a.txtset"
@@ -19,7 +26,6 @@ SPECIESNET_IMAGE_SIZE = 480
 
 logger = logging.getLogger("megadetector_video")
 
-
 def preprocess_bgr_to_md_input(bgr: np.ndarray) -> np.ndarray:
     resized = cv2.resize(bgr, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
@@ -28,32 +34,11 @@ def preprocess_bgr_to_md_input(bgr: np.ndarray) -> np.ndarray:
     return nchw / 255.0
 
 
-def load_speciesnet_labels(label_path: str) -> List[str]:
-    labels: List[str] = []
-    with open(label_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            labels.append(line.split(";")[-1])
-    if not labels:
-        raise ValueError(f"No labels found in: {label_path}")
-    return labels
-
-
-def softmax_2d(logits: np.ndarray) -> np.ndarray:
-    logits = np.asarray(logits)
-    if logits.ndim != 2:
-        raise ValueError(f"Expected logits shape (B,C), got: {logits.shape}")
-    exp = np.exp(logits - np.max(logits, axis=1, keepdims=True))
-    return exp / np.sum(exp, axis=1, keepdims=True)
-
-
 class SpeciesNetRunner:
     def __init__(self, model_path: str, labels_path: str) -> None:
         self.model_path = model_path
         self.labels_path = labels_path
-        self.labels = load_speciesnet_labels(labels_path)
+        self.labels = load_txtset_labels_last_field(labels_path)
 
         avail = set(onnxruntime.get_available_providers())
         providers: List[str] = []
@@ -85,28 +70,6 @@ class SpeciesNetRunner:
         idx = int(np.argmax(probs, axis=1)[0])
         label = self.labels[idx] if 0 <= idx < len(self.labels) else str(idx)
         return label, float(probs[0, idx])
-
-
-def crop_norm_xyxy_from_bgr(frame_bgr: np.ndarray, bbox_xyxy: List[float]) -> np.ndarray | None:
-    if not (isinstance(bbox_xyxy, list) and len(bbox_xyxy) == 4):
-        return None
-    h, w = frame_bgr.shape[:2]
-    try:
-        x1n, y1n, x2n, y2n = (float(bbox_xyxy[0]), float(bbox_xyxy[1]), float(bbox_xyxy[2]), float(bbox_xyxy[3]))
-    except Exception:
-        return None
-
-    x1 = int(max(0.0, min(1.0, x1n)) * w)
-    y1 = int(max(0.0, min(1.0, y1n)) * h)
-    x2 = int(max(0.0, min(1.0, x2n)) * w)
-    y2 = int(max(0.0, min(1.0, y2n)) * h)
-
-    if x2 <= x1 or y2 <= y1:
-        return None
-    crop = frame_bgr[y1:y2, x1:x2]
-    if crop.size == 0:
-        return None
-    return crop
 
 
 # --- copied from src/megadetector_detector.py (Megadetector post-processing) ---
@@ -182,74 +145,29 @@ def megadetector_post_processing(outputs, confidence, input_image_width, input_i
     return preds
 
 
-def configure_ort_cpu_session_threads(sess_options: onnxruntime.SessionOptions) -> Dict[str, Any]:
-    if os.environ.get("MEGADETECTOR_ORT_USE_DEFAULT_THREADS", "").lower() in (
-        "1",
-        "true",
-        "yes",
-    ):
-        return {"note": "MEGADETECTOR_ORT_USE_DEFAULT_THREADS=1 (ORT defaults)"}
+class MegaDetectorRunner:
+    def __init__(self, model_path: str, cpu_cores: int) -> None:
+        self.model_path = model_path
+        sess_options = onnxruntime.SessionOptions()
+        sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+        self.ort_threads = configure_ort_cpu_session_threads_from_cores(sess_options, int(cpu_cores))
+        t0 = time.perf_counter()
+        self.session = onnxruntime.InferenceSession(
+            model_path, providers=["CPUExecutionProvider"], sess_options=sess_options
+        )
+        self.load_seconds = time.perf_counter() - t0
+        self.input_name = self.session.get_inputs()[0].name
 
-    cpu = os.cpu_count() or 4
-    intra_default = max(1, min(cpu, 16))
-    inter_default = 1
+    def preprocess_frame_bgr(self, frame_bgr: np.ndarray) -> np.ndarray:
+        return preprocess_bgr_to_md_input(frame_bgr)
 
-    intra_raw = os.environ.get("MEGADETECTOR_ORT_INTRA_OP_NUM_THREADS", "").strip()
-    inter_raw = os.environ.get("MEGADETECTOR_ORT_INTER_OP_NUM_THREADS", "").strip()
+    def infer_batch(self, batch_tensor: np.ndarray) -> Tuple[List[np.ndarray], str]:
+        return run_onnx_with_stacked_batch(self.session, self.input_name, batch_tensor)
 
-    intra = int(intra_raw) if intra_raw else intra_default
-    inter = int(inter_raw) if inter_raw else inter_default
-    intra = max(1, intra)
-    inter = max(1, inter)
-
-    sess_options.intra_op_num_threads = intra
-    sess_options.inter_op_num_threads = inter
-
-    return {
-        "intra_op_num_threads": intra,
-        "inter_op_num_threads": inter,
-        "source": "env" if (intra_raw or inter_raw) else f"heuristic (os.cpu_count()={cpu})",
-    }
-
-
-def configure_ort_cpu_session_threads_from_cores(
-    sess_options: onnxruntime.SessionOptions, cores: int
-) -> Dict[str, Any]:
-    """
-    Explicitly set ORT CPU threading from a user-provided "cores" value.
-
-    This intentionally ignores the env-based heuristics in configure_ort_cpu_session_threads()
-    so the UI can directly control CPU utilization.
-    """
-    cores = max(1, int(cores))
-    sess_options.intra_op_num_threads = cores
-    sess_options.inter_op_num_threads = 1
-    return {"intra_op_num_threads": cores, "inter_op_num_threads": 1, "source": "cli(--batch-size as cores)"}
-
-
-def run_onnx_with_stacked_batch(
-    session: onnxruntime.InferenceSession, input_name: str, batch_tensor: np.ndarray
-) -> Tuple[List[np.ndarray], str]:
-    """
-    Run Megadetector ONNX on (B, 3, 640, 640).
-
-    If the model input has fixed batch=1, run B forwards and concatenate output[0].
-    """
-    b = int(batch_tensor.shape[0])
-    shape = session.get_inputs()[0].shape
-    fixed_batch_1 = shape is not None and len(shape) > 0 and shape[0] == 1
-
-    if b == 1:
-        return session.run(None, {input_name: batch_tensor}), "single_forward"
-
-    if not fixed_batch_1:
-        return session.run(None, {input_name: batch_tensor}), "single_forward_batched"
-
-    outs0 = []
-    for i in range(b):
-        one = session.run(None, {input_name: batch_tensor[i : i + 1]})
-        outs0.append(one[0])
-    return [np.concatenate(outs0, axis=0)], f"B={b}_sequential_fixed_batch1_model"
+    def postprocess(
+        self, outputs: List[np.ndarray], confidence: float
+    ) -> List[np.ndarray]:
+        return megadetector_post_processing(outputs, confidence, IMAGE_SIZE, IMAGE_SIZE)
 
 
 def iter_frames_one_per_second(cap: cv2.VideoCapture, fps: float):
@@ -355,16 +273,9 @@ def main() -> int:
 
     logger.info("Video metadata: fps=%.3f total_frames=%d duration_seconds=%s", fps, total_frames, str(duration_s))
 
-    sess_options = onnxruntime.SessionOptions()
-    sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
-    ort_threads = configure_ort_cpu_session_threads_from_cores(sess_options, int(args.batch_size))
-    logger.info("ORT threads: %s", ort_threads)
-    t_load0 = time.perf_counter()
-    session = onnxruntime.InferenceSession(
-        args.model, providers=["CPUExecutionProvider"], sess_options=sess_options
-    )
-    logger.info("Loaded ONNX session in %.3fs", time.perf_counter() - t_load0)
-    input_name = session.get_inputs()[0].name
+    md = MegaDetectorRunner(args.model, cpu_cores=int(args.batch_size))
+    logger.info("ORT threads: %s", md.ort_threads)
+    logger.info("Loaded MD ONNX session in %.3fs", md.load_seconds)
 
     species_runner: SpeciesNetRunner | None = None
     if args.species_model:
@@ -397,13 +308,13 @@ def main() -> int:
         batch_tensor = np.concatenate(frames_batch, axis=0)
 
         t0 = time.perf_counter()
-        outputs, onnx_mode = run_onnx_with_stacked_batch(session, input_name, batch_tensor)
+        outputs, onnx_mode = md.infer_batch(batch_tensor)
         infer_s = time.perf_counter() - t0
         infer_total_s += infer_s
         onnx_mode_counts[onnx_mode] = onnx_mode_counts.get(onnx_mode, 0) + 1
 
         t1 = time.perf_counter()
-        preds = megadetector_post_processing(outputs, args.confidence, IMAGE_SIZE, IMAGE_SIZE)
+        preds = md.postprocess(outputs, args.confidence)
         post_s = time.perf_counter() - t1
         post_total_s += post_s
 
@@ -467,7 +378,7 @@ def main() -> int:
 
     try:
         for t_sec, frame_idx, frame_bgr in iter_frames_one_per_second(cap, fps):
-            inp = preprocess_bgr_to_md_input(frame_bgr)
+            inp = md.preprocess_frame_bgr(frame_bgr)
             frames_batch.append(inp)
             metas_batch.append((t_sec, frame_idx))
             orig_bgr_batch.append(frame_bgr)
@@ -488,7 +399,7 @@ def main() -> int:
         "video_fps": fps,
         "total_frames": total_frames,
         "duration_seconds": duration_s,
-        "ort_threads": ort_threads,
+        "ort_threads": md.ort_threads,
         "speciesnet": (
             {
                 "enabled": True,
