@@ -10,7 +10,7 @@ import numpy as np
 import onnxruntime
 
 
-DEFAULT_MODEL_PATH = "/home/slava/Public/action-1.1.0/models/md_v5a_1_3_640_640_static.onnx"
+DEFAULT_MODEL_PATH = "./models/md_v5a_1_3_640_640_static.onnx"
 IMAGE_SIZE = 640
 
 logger = logging.getLogger("megadetector_video")
@@ -127,6 +127,21 @@ def configure_ort_cpu_session_threads(sess_options: onnxruntime.SessionOptions) 
     }
 
 
+def configure_ort_cpu_session_threads_from_cores(
+    sess_options: onnxruntime.SessionOptions, cores: int
+) -> Dict[str, Any]:
+    """
+    Explicitly set ORT CPU threading from a user-provided "cores" value.
+
+    This intentionally ignores the env-based heuristics in configure_ort_cpu_session_threads()
+    so the UI can directly control CPU utilization.
+    """
+    cores = max(1, int(cores))
+    sess_options.intra_op_num_threads = cores
+    sess_options.inter_op_num_threads = 1
+    return {"intra_op_num_threads": cores, "inter_op_num_threads": 1, "source": "cli(--batch-size as cores)"}
+
+
 def run_onnx_with_stacked_batch(
     session: onnxruntime.InferenceSession, input_name: str, batch_tensor: np.ndarray
 ) -> Tuple[List[np.ndarray], str]:
@@ -203,8 +218,8 @@ def main() -> int:
         "-b",
         "--batch-size",
         type=int,
-        default=int(os.environ.get("MEGADETECTOR_BATCH_SIZE", "8")),
-        help="How many 1Hz frames to run per ONNX call (default 8; or MEGADETECTOR_BATCH_SIZE).",
+        default=int(os.environ.get("MEGADETECTOR_CPU_CORES", str(max(1, (os.cpu_count() or 4) // 2)))),
+        help="How many CPU cores/threads to give ONNX Runtime (default: half your CPUs; or MEGADETECTOR_CPU_CORES).",
     )
     args = p.parse_args()
 
@@ -222,7 +237,14 @@ def main() -> int:
     logger.info("Video: %s", os.path.abspath(video_path))
     logger.info("Model: %s", os.path.abspath(args.model))
     logger.info("Output: %s", os.path.abspath(output_path))
-    logger.info("Params: confidence=%.3f batch_size=%d sample_rate_hz=1.0", float(args.confidence), int(args.batch_size))
+    frames_per_batch = int(os.environ.get("MEGADETECTOR_FRAMES_PER_BATCH", "8"))
+    frames_per_batch = max(1, frames_per_batch)
+    logger.info(
+        "Params: confidence=%.3f cpu_cores=%d frames_per_batch=%d sample_rate_hz=1.0",
+        float(args.confidence),
+        int(args.batch_size),
+        int(frames_per_batch),
+    )
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -236,7 +258,7 @@ def main() -> int:
 
     sess_options = onnxruntime.SessionOptions()
     sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
-    ort_threads = configure_ort_cpu_session_threads(sess_options)
+    ort_threads = configure_ort_cpu_session_threads_from_cores(sess_options, int(args.batch_size))
     logger.info("ORT threads: %s", ort_threads)
     t_load0 = time.perf_counter()
     session = onnxruntime.InferenceSession(
@@ -314,7 +336,7 @@ def main() -> int:
             sampled += 1
             if sampled % 30 == 0:
                 logger.info("Sampled %d frames @1Hz so far…", sampled)
-            if len(frames_batch) >= max(1, int(args.batch_size)):
+            if len(frames_batch) >= frames_per_batch:
                 flush_batch()
         flush_batch()
     finally:

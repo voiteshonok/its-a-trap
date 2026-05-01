@@ -59,7 +59,9 @@ class VideoPicker(QWidget):
 
         self.batch_spin = QSpinBox()
         self.batch_spin.setRange(1, 1024)
-        self.batch_spin.setValue(4)
+        # "Batch size" now controls ORT CPU cores/threads.
+        cpu = os.cpu_count() or 4
+        self.batch_spin.setValue(max(1, cpu - 1))
 
         self.conf_spin = QDoubleSpinBox()
         self.conf_spin.setRange(0.0, 1.0)
@@ -92,7 +94,7 @@ class VideoPicker(QWidget):
         self.status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
         form = QFormLayout()
-        form.addRow("Batch size:", self.batch_spin)
+        form.addRow("CPU cores:", self.batch_spin)
         form.addRow("Confidence:", self.conf_spin)
         form.addRow("Output file:", self.output_edit)
 
