@@ -336,9 +336,18 @@ class VideoPicker(QWidget):
             if not (isinstance(bbox, list) and len(bbox) == 4):
                 continue
             conf = d.get("confidence", None)
-            conf_text = None
+            label_parts: list[str] = []
             if isinstance(conf, (int, float)):
-                conf_text = f"{float(conf):.3f}"
+                label_parts.append(f"{float(conf):.3f}")
+
+            sn = d.get("speciesnet")
+            if isinstance(sn, dict):
+                cn = sn.get("class_name")
+                pr = sn.get("probability")
+                if isinstance(cn, str) and isinstance(pr, (int, float)):
+                    label_parts.append(f"{cn} {float(pr):.3f}")
+
+            conf_text = " | ".join(label_parts) if label_parts else None
             try:
                 x1n, y1n, x2n, y2n = (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3]))
             except Exception:
