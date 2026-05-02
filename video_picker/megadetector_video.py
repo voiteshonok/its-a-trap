@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import os
 import time
@@ -9,6 +8,7 @@ import cv2
 import numpy as np
 import onnxruntime
 
+from .pipeline import process_video
 from .utils import (
     configure_ort_cpu_session_threads_from_cores,
     crop_norm_xyxy_from_bgr,
@@ -287,147 +287,43 @@ def main() -> int:
         species_runner = SpeciesNetRunner(args.species_model, args.species_labels)
         logger.info("Loaded SpeciesNet ONNX session in %.3fs", time.perf_counter() - t_s0)
 
-    # Collect frames and associated timestamps, run in batches.
-    frames_batch: List[np.ndarray] = []
-    metas_batch: List[Tuple[float, int]] = []
-    orig_bgr_batch: List[np.ndarray] = []
-    results: List[Dict[str, Any]] = []
-
-    infer_total_s = 0.0
-    post_total_s = 0.0
-    onnx_mode_counts: Dict[str, int] = {}
-    sampled = 0
-    batches = 0
-
-    def flush_batch():
-        nonlocal infer_total_s, post_total_s, batches
-        if not frames_batch:
-            return
-
-        batches += 1
-        batch_tensor = np.concatenate(frames_batch, axis=0)
-
-        t0 = time.perf_counter()
-        outputs, onnx_mode = md.infer_batch(batch_tensor)
-        infer_s = time.perf_counter() - t0
-        infer_total_s += infer_s
-        onnx_mode_counts[onnx_mode] = onnx_mode_counts.get(onnx_mode, 0) + 1
-
-        t1 = time.perf_counter()
-        preds = md.postprocess(outputs, args.confidence)
-        post_s = time.perf_counter() - t1
-        post_total_s += post_s
-
-        logger.info(
-            "Batch %d: B=%d onnx=%.3fs post=%.3fs mode=%s total_frames_written=%d",
-            batches,
-            int(batch_tensor.shape[0]),
-            infer_s,
-            post_s,
-            onnx_mode,
-            len(results) + len(metas_batch),
-        )
-
-        for (t_sec, frame_idx), boxes in zip(metas_batch, preds):
-            boxes_arr = np.asarray(boxes)
-            dets = []
-            for b in boxes_arr:
-                det = {
-                    "bbox_xyxy": [float(b[0]), float(b[1]), float(b[2]), float(b[3])],
-                    "confidence": float(b[4]),
-                }
-                dets.append(det)
-            results.append(
-                {
-                    "t_seconds": float(t_sec),
-                    "frame_index": int(frame_idx),
-                    "detections": dets,
-                }
+    def on_progress(evt: Dict[str, Any]) -> None:
+        if evt.get("type") == "progress":
+            sampled = int(evt.get("sampled_frames", 0))
+            if sampled and sampled % 30 == 0:
+                logger.info("Sampled %d frames @1Hz so far…", sampled)
+        elif evt.get("type") == "batch_done":
+            logger.info(
+                "Batch %d: B=%d onnx=%.3fs post=%.3fs mode=%s total_frames_written=%d",
+                int(evt.get("batches", 0)),
+                int(evt.get("batch_size", 0)),
+                float(evt.get("onnx_infer_s", 0.0)),
+                float(evt.get("post_s", 0.0)),
+                str(evt.get("onnx_mode", "")),
+                int(evt.get("frames_written_total", 0)),
             )
 
-        # Optional SpeciesNet pass: classify crops for detections above the MD threshold.
-        if species_runner is not None:
-            for frame_out, frame_bgr in zip(results[-len(metas_batch) :], orig_bgr_batch):
-                dets = frame_out.get("detections", [])
-                if not isinstance(dets, list):
-                    continue
-                for det in dets:
-                    if not isinstance(det, dict):
-                        continue
-                    conf = det.get("confidence", None)
-                    if not isinstance(conf, (int, float)):
-                        continue
-                    if float(conf) < float(args.confidence):
-                        continue
-                    bbox = det.get("bbox_xyxy")
-                    if not (isinstance(bbox, list) and len(bbox) == 4):
-                        continue
-                    crop = crop_norm_xyxy_from_bgr(frame_bgr, bbox)
-                    if crop is None:
-                        continue
-                    try:
-                        class_name, prob = species_runner.predict_crop_bgr(crop)
-                    except Exception as e:
-                        logger.debug("SpeciesNet failed on crop: %s", e)
-                        continue
-                    det["speciesnet"] = {"class_name": class_name, "probability": float(prob)}
-
-        frames_batch.clear()
-        metas_batch.clear()
-        orig_bgr_batch.clear()
-
-    try:
-        for t_sec, frame_idx, frame_bgr in iter_frames_one_per_second(cap, fps):
-            inp = md.preprocess_frame_bgr(frame_bgr)
-            frames_batch.append(inp)
-            metas_batch.append((t_sec, frame_idx))
-            orig_bgr_batch.append(frame_bgr)
-            sampled += 1
-            if sampled % 30 == 0:
-                logger.info("Sampled %d frames @1Hz so far…", sampled)
-            if len(frames_batch) >= frames_per_batch:
-                flush_batch()
-        flush_batch()
-    finally:
-        cap.release()
-
-    out: Dict[str, Any] = {
-        "video_path": os.path.abspath(video_path),
-        "model_path": os.path.abspath(args.model),
-        "confidence_threshold": float(args.confidence),
-        "sample_rate_hz": 1.0,
-        "video_fps": fps,
-        "total_frames": total_frames,
-        "duration_seconds": duration_s,
-        "ort_threads": md.ort_threads,
-        "speciesnet": (
-            {
-                "enabled": True,
-                "model_path": os.path.abspath(args.species_model),
-                "labels_path": os.path.abspath(args.species_labels),
-            }
-            if species_runner is not None
-            else {"enabled": False}
-        ),
-        "onnx_mode_counts": onnx_mode_counts,
-        "timing_seconds": {
-            "onnx_inference_total": infer_total_s,
-            "postprocessing_total": post_total_s,
-            "onnx_plus_post_total": infer_total_s + post_total_s,
-        },
-        "frames": results,
-    }
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=2, sort_keys=False)
-
-    logger.info("Wrote %d frames to %s", len(results), output_path)
-    logger.info(
-        "Timing: onnx=%.3fs post=%.3fs total=%.3fs",
-        infer_total_s,
-        post_total_s,
-        infer_total_s + post_total_s,
+    out = process_video(
+        video_path=video_path,
+        output_path=output_path,
+        md_runner=md,
+        species_runner=species_runner,
+        confidence_threshold=float(args.confidence),
+        frames_per_batch=int(frames_per_batch),
+        sample_rate_hz=1.0,
+        on_progress=on_progress,
     )
+
+    timing = out.get("timing_seconds") if isinstance(out, dict) else None
+    if isinstance(timing, dict):
+        logger.info(
+            "Timing: onnx=%.3fs post=%.3fs total=%.3fs",
+            float(timing.get("onnx_inference_total", 0.0)),
+            float(timing.get("postprocessing_total", 0.0)),
+            float(timing.get("onnx_plus_post_total", 0.0)),
+        )
+
+    logger.info("Wrote %d frames to %s", len(out.get("frames", [])) if isinstance(out, dict) else 0, output_path)
     return 0
 
 

@@ -2,10 +2,11 @@ import os
 import sys
 import json
 from pathlib import Path
+from uuid import uuid4
 
 import cv2
 from PyQt6.QtCore import QProcess, Qt
-from PyQt6.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPen, QPixmap
+from PyQt6.QtGui import QBrush, QColor, QCloseEvent, QFont, QImage, QPainter, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -39,7 +40,11 @@ class VideoPicker(QWidget):
             f.setPixelSize(max(18, int(f.pixelSize() * 2)))
         self.setFont(f)
 
-        self._proc: QProcess | None = None
+        self._worker: QProcess | None = None
+        self._worker_stdout_buf = ""
+        self._job_id_to_output: dict[str, str] = {}
+        self._queue: list[tuple[str, str]] = []  # (video_path, output_path)
+        self._active_job_id: str | None = None
         self._frames: list[dict] = []
         self._frame_i: int = 0
         self._cap: cv2.VideoCapture | None = None
@@ -57,11 +62,14 @@ class VideoPicker(QWidget):
         self.select_btn = QPushButton("Select video…")
         self.select_btn.clicked.connect(self._select_video)  # type: ignore[arg-type]
 
+        self.add_queue_btn = QPushButton("Add videos to queue…")
+        self.add_queue_btn.clicked.connect(self._add_videos_to_queue)  # type: ignore[arg-type]
+
         self.batch_spin = QSpinBox()
         self.batch_spin.setRange(1, 1024)
         # "Batch size" now controls ORT CPU cores/threads.
         cpu = os.cpu_count() or 4
-        self.batch_spin.setValue(max(1, cpu - 1))
+        self.batch_spin.setValue(max(1, cpu - 2))
 
         self.conf_spin = QDoubleSpinBox()
         self.conf_spin.setRange(0.0, 1.0)
@@ -72,8 +80,12 @@ class VideoPicker(QWidget):
         self.output_edit = QLineEdit(str(DEFAULT_OUTPUT_PATH))
         self.output_edit.setReadOnly(True)
 
-        self.start_btn = QPushButton("Start processing")
-        self.start_btn.clicked.connect(self._start_processing)  # type: ignore[arg-type]
+        self.start_btn = QPushButton("Start queue")
+        self.start_btn.clicked.connect(self._start_queue)  # type: ignore[arg-type]
+
+        self.stop_btn = QPushButton("Stop worker")
+        self.stop_btn.clicked.connect(self._stop_worker)  # type: ignore[arg-type]
+        self.stop_btn.setEnabled(False)
 
         self.prev_btn = QPushButton("◀ Prev")
         self.next_btn = QPushButton("Next ▶")
@@ -104,10 +116,12 @@ class VideoPicker(QWidget):
         layout.addWidget(QLabel("Selected video path:"))
         layout.addWidget(self.path_edit)
         layout.addWidget(self.select_btn)
+        layout.addWidget(self.add_queue_btn)
         layout.addSpacing(8)
         layout.addLayout(form)
         layout.addSpacing(8)
         layout.addWidget(self.start_btn)
+        layout.addWidget(self.stop_btn)
         nav = QHBoxLayout()
         nav.addWidget(self.prev_btn)
         nav.addWidget(self.next_btn)
@@ -116,7 +130,7 @@ class VideoPicker(QWidget):
         layout.addWidget(self.status)
         self.setLayout(layout)
 
-        self._set_status("Pick a video (or use the default), then click Start processing.")
+        self._set_status("Add videos to the queue, then click Start queue.")
 
     def _set_status(self, msg: str) -> None:
         self.status.setText(msg)
@@ -131,7 +145,7 @@ class VideoPicker(QWidget):
             self,
             "Select a video file",
             start_dir,
-            "Videos (*.mp4 *.mkv *.mov *.avi *.webm *.m4v *.mpeg *.mpg);;All files (*)",
+            "Videos (*.mp4 *.MP4 *.mkv *.MKV *.mov *.MOV *.avi *.AVI *.webm *.WEBM *.m4v *.M4V *.mpeg *.MPEG *.mpg *.MPG);;All files (*)",
         )
         if not path:
             self._set_status("Selection cancelled.")
@@ -146,84 +160,224 @@ class VideoPicker(QWidget):
         self.image_label.setText("No results loaded.")
         self._set_status("Video selected (in-memory).")
 
-    def _start_processing(self) -> None:
-        if self._proc is not None and self._proc.state() != QProcess.ProcessState.NotRunning:
-            self._set_status("Processing already running.")
+    def _add_videos_to_queue(self) -> None:
+        start_dir = (
+            os.path.dirname(self.path_edit.text())
+            if self.path_edit.text()
+            else os.path.expanduser("~")
+        )
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select video files",
+            start_dir,
+            "Videos (*.mp4 *.MP4 *.mkv *.MKV *.mov *.MOV *.avi *.AVI *.webm *.WEBM *.m4v *.M4V *.mpeg *.MPEG *.mpg *.MPG);;All files (*)",
+        )
+        if not paths:
+            self._set_status("No videos added.")
             return
 
-        video_path = self.path_edit.text().strip()
-        if not video_path:
-            self._set_status("Select a video first.")
+        for p in paths:
+            base = os.path.splitext(os.path.basename(p))[0]
+            out = str(Path.cwd() / f"{base}_output.json")
+            self._queue.append((p, out))
+
+        self._set_status(f"Queued {len(paths)} videos (total queued={len(self._queue)}).")
+
+    def _ensure_worker_started(self) -> None:
+        if self._worker is not None and self._worker.state() != QProcess.ProcessState.NotRunning:
             return
 
-        output_path = str(DEFAULT_OUTPUT_PATH)
-        batch = int(self.batch_spin.value())
-        conf = float(self.conf_spin.value())
+        self._worker = QProcess(self)
+        self._worker.setProgram(sys.executable)
+        self._worker.setArguments(["-m", "video_picker.worker"])
+        self._worker.setWorkingDirectory(str(Path.cwd()))
+        self._worker.readyReadStandardOutput.connect(self._on_worker_stdout)  # type: ignore[arg-type]
+        self._worker.readyReadStandardError.connect(self._on_worker_stderr)  # type: ignore[arg-type]
+        self._worker.finished.connect(self._on_worker_finished)  # type: ignore[arg-type]
+        self._worker.start()
 
-        args = [
-            "-m",
-            "video_picker.megadetector_video",
-            video_path,
-            "--output",
-            output_path,
-            "--batch-size",
-            str(batch),
-            "--confidence",
-            str(conf),
-        ]
+        self.stop_btn.setEnabled(True)
 
-        self._proc = QProcess(self)
-        self._proc.setProgram(sys.executable)
-        self._proc.setArguments(args)
-        self._proc.setWorkingDirectory(str(Path.cwd()))
+        init_msg = {
+            "type": "init",
+            "md_model_path": os.environ.get("MEGADETECTOR_MODEL_PATH", "./models/md_v5a_1_3_640_640_static.onnx"),
+            "species_model_path": os.environ.get("SPECIESNET_MODEL_PATH", "./models/spicesNet_v401a.onnx"),
+            "species_labels_path": os.environ.get("SPECIESNET_LABELS_PATH", "./static/spicesNet_labels_v401a.txtset"),
+            "cpu_cores": int(self.batch_spin.value()),
+            "confidence": float(self.conf_spin.value()),
+            "frames_per_batch": int(os.environ.get("MEGADETECTOR_FRAMES_PER_BATCH", "8")),
+        }
+        self._worker.write((json.dumps(init_msg) + "\n").encode("utf-8"))
 
-        self._proc.readyReadStandardOutput.connect(self._on_proc_stdout)  # type: ignore[arg-type]
-        self._proc.readyReadStandardError.connect(self._on_proc_stderr)  # type: ignore[arg-type]
-        self._proc.finished.connect(self._on_proc_finished)  # type: ignore[arg-type]
+    def _start_queue(self) -> None:
+        # If user hasn't used the queue UI, treat the single selected video as a 1-item queue.
+        if not self._queue:
+            video_path = self.path_edit.text().strip()
+            if video_path:
+                base = os.path.splitext(os.path.basename(video_path))[0]
+                out = str(Path.cwd() / f"{base}_output.json")
+                self._queue.append((video_path, out))
+
+        if not self._queue:
+            self._set_status("Queue is empty. Add videos first.")
+            return
+
+        self._ensure_worker_started()
+
+        # Enqueue everything currently in the queue to the worker.
+        # Worker processes sequentially.
+        for video_path, output_path in list(self._queue):
+            job_id = str(uuid4())
+            self._job_id_to_output[job_id] = output_path
+            msg = {
+                "type": "enqueue",
+                "job_id": job_id,
+                "video_path": video_path,
+                "output_path": output_path,
+            }
+            assert self._worker is not None
+            self._worker.write((json.dumps(msg) + "\n").encode("utf-8"))
 
         self.start_btn.setEnabled(False)
         self.select_btn.setEnabled(False)
-        self.prev_btn.setEnabled(False)
-        self.next_btn.setEnabled(False)
-        self._set_status(f"Running… (logs in terminal) writing ./{output_path}")
-        self._proc.start()
+        self.add_queue_btn.setEnabled(False)
+        self._set_status(f"Enqueued {len(self._queue)} jobs to worker…")
+        self._queue.clear()
 
-    def _on_proc_stdout(self) -> None:
-        if self._proc is None:
+    def _on_worker_stdout(self) -> None:
+        if self._worker is None:
             return
-        text = bytes(self._proc.readAllStandardOutput()).decode("utf-8", errors="replace")
-        if text:
-            # Forward logs to the terminal where the GUI was launched.
+        text = bytes(self._worker.readAllStandardOutput()).decode("utf-8", errors="replace")
+        if not text:
+            return
+        self._worker_stdout_buf += text
+        while "\n" in self._worker_stdout_buf:
+            line, self._worker_stdout_buf = self._worker_stdout_buf.split("\n", 1)
+            line = line.strip()
+            if not line:
+                continue
             try:
-                sys.stdout.write(text)
-                sys.stdout.flush()
+                msg = json.loads(line)
             except Exception:
-                pass
+                continue
+            self._handle_worker_msg(msg)
 
-    def _on_proc_stderr(self) -> None:
-        if self._proc is None:
+    def _handle_worker_msg(self, msg: dict) -> None:
+        # Log every event to stdout (so you can see full timeline).
+        try:
+            sys.stdout.write(json.dumps(msg, ensure_ascii=False) + "\n")
+            sys.stdout.flush()
+        except Exception:
+            pass
+
+        t = msg.get("type")
+        if t == "ready":
+            self._set_status("Worker ready (models preloaded).")
             return
-        text = bytes(self._proc.readAllStandardError()).decode("utf-8", errors="replace")
+        if t == "model_load_started":
+            model = str(msg.get("model", "model"))
+            mp = str(msg.get("model_path", ""))
+            self._set_status(f"Loading {model}… {mp}")
+            return
+        if t == "model_load_finished":
+            model = str(msg.get("model", "model"))
+            ls = msg.get("load_seconds", None)
+            self._set_status(f"Loaded {model} ({ls}s)")
+            return
+        if t == "job_started":
+            self._active_job_id = str(msg.get("job_id", "")) or None
+            self._set_status(f"Running job {self._active_job_id}…")
+            return
+        if t == "job_progress":
+            jid = str(msg.get("job_id", ""))
+            sf = int(msg.get("sampled_frames", 0) or 0)
+            self._set_status(f"Job {jid}: sampled_frames={sf}")
+            return
+        if t == "job_finished":
+            jid = str(msg.get("job_id", ""))
+            outp = str(msg.get("output_path", self._job_id_to_output.get(jid, DEFAULT_OUTPUT_PATH)))
+            self._active_job_id = None
+            elapsed = msg.get("elapsed_seconds", None)
+            self._set_status(f"Done job {jid} ({elapsed}s). Loading {outp}…")
+            self._load_results_and_show_first(output_path=Path(outp))
+            self.start_btn.setEnabled(True)
+            self.select_btn.setEnabled(True)
+            self.add_queue_btn.setEnabled(True)
+            return
+        if t == "job_failed":
+            jid = str(msg.get("job_id", ""))
+            err = str(msg.get("error", "unknown error"))
+            self._active_job_id = None
+            self._set_status(f"Job {jid} failed: {err}")
+            self.start_btn.setEnabled(True)
+            self.select_btn.setEnabled(True)
+            self.add_queue_btn.setEnabled(True)
+            return
+
+    def _on_worker_stderr(self) -> None:
+        if self._worker is None:
+            return
+        text = bytes(self._worker.readAllStandardError()).decode("utf-8", errors="replace")
         if text:
-            # Forward logs to the terminal where the GUI was launched.
             try:
                 sys.stderr.write(text)
                 sys.stderr.flush()
             except Exception:
                 pass
 
-    def _on_proc_finished(self, exit_code: int, _status) -> None:
+    def _on_worker_finished(self, exit_code: int, _status) -> None:
+        self._set_status(f"Worker exited with code {exit_code}.")
+        self.stop_btn.setEnabled(False)
         self.start_btn.setEnabled(True)
         self.select_btn.setEnabled(True)
-        if exit_code == 0:
-            self._set_status(f"Done. Wrote ./{DEFAULT_OUTPUT_PATH}. Loading results…")
-            self._load_results_and_show_first()
-        else:
-            self._set_status(f"Failed with exit code {exit_code}. See last message above.")
+        self.add_queue_btn.setEnabled(True)
+        self._worker = None
+        self._worker_stdout_buf = ""
+        self._active_job_id = None
 
-    def _load_results_and_show_first(self) -> None:
+    def _stop_worker(self) -> None:
+        if self._worker is None:
+            return
         try:
-            with open(DEFAULT_OUTPUT_PATH, "r", encoding="utf-8") as f:
+            self._worker.write((json.dumps({"type": "shutdown"}) + "\n").encode("utf-8"))
+        except Exception:
+            pass
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 (Qt API name)
+        # Best-effort graceful shutdown of the always-on worker.
+        try:
+            self._close_cap()
+        except Exception:
+            pass
+
+        w = self._worker
+        if w is not None and w.state() != QProcess.ProcessState.NotRunning:
+            try:
+                w.write((json.dumps({"type": "shutdown"}) + "\n").encode("utf-8"))
+                w.waitForBytesWritten(250)
+            except Exception:
+                pass
+
+            if not w.waitForFinished(1500):
+                try:
+                    w.terminate()
+                except Exception:
+                    pass
+                if not w.waitForFinished(1500):
+                    try:
+                        w.kill()
+                    except Exception:
+                        pass
+                    w.waitForFinished(1500)
+
+        self._worker = None
+        self._worker_stdout_buf = ""
+        self._active_job_id = None
+        event.accept()
+
+    def _load_results_and_show_first(self, output_path: Path = DEFAULT_OUTPUT_PATH) -> None:
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             frames = data.get("frames", [])
             if not isinstance(frames, list):
@@ -234,7 +388,7 @@ class VideoPicker(QWidget):
             self._frames = []
             self._frame_i = 0
             self.image_label.setText("Failed to load output.json")
-            self._set_status(f"Failed to read {DEFAULT_OUTPUT_PATH}: {e}")
+            self._set_status(f"Failed to read {output_path}: {e}")
             return
 
         if not self._frames:
