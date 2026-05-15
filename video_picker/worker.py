@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import time
@@ -28,6 +29,13 @@ class Job:
 
 
 def main() -> int:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=os.environ.get("MEGADETECTOR_LOG_LEVEL", "INFO").upper(),
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+            stream=sys.stderr,
+        )
+
     md: MegaDetectorRunner | None = None
     species: SpeciesNetRunner | None = None
     ready = False
