@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import onnxruntime
 
+from .md_postprocess import megadetector_post_processing
 from .pipeline import process_video
 from .utils import (
     configure_ort_cpu_session_threads_from_cores,
@@ -72,79 +73,6 @@ class SpeciesNetRunner:
         return label, float(probs[0, idx])
 
 
-# --- copied from src/megadetector_detector.py (Megadetector post-processing) ---
-
-
-def _calc_ious(b0, bx):
-    i_area = np.maximum(
-        np.minimum(b0[2:4], bx[..., 2:4]) - np.maximum(b0[:2], bx[..., :2]), 0
-    ).prod(axis=1)
-
-    u_area = (
-        (b0[2:4] - b0[:2]).prod(axis=0)
-        + (bx[..., 2:4] - bx[..., :2]).prod(axis=-1)
-        - i_area
-    )
-
-    return i_area / u_area
-
-
-def _nms(pred, iou_thresh, npred):
-    if len(pred) == 0:
-        return npred
-
-    p0 = pred[0]
-    px = pred[1:]
-
-    npred.append(p0)
-    if len(px) == 0:
-        return npred
-
-    ious = _calc_ious(p0, px)
-    ious[px[..., 5] != p0[5]] = 0
-    pp = px[ious < iou_thresh]
-
-    return _nms(pp, iou_thresh, npred)
-
-
-def _xywh2xyxy(xywh):
-    xyxy = np.zeros_like(xywh)
-    xc, yc, half_w, half_h = xywh[:, 0], xywh[:, 1], xywh[:, 2] / 2, xywh[:, 3] / 2
-    xyxy[:, 0] = xc - half_w
-    xyxy[:, 1] = yc - half_h
-    xyxy[:, 2] = xc + half_w
-    xyxy[:, 3] = yc + half_h
-    return xyxy
-
-
-def non_max_suppression(pred, conf_thresh=0.25, iou_thresh=0.45):
-    pred = pred[pred[..., 4] > conf_thresh]
-    pred = pred[np.flip(np.argsort(pred[..., 4], axis=-1), axis=0)]
-
-    pred[..., 5] = np.argmax(pred[..., 5:], axis=-1)
-    pred = pred[..., :6]
-    pred[..., :4] = _xywh2xyxy(pred[..., :4])
-
-    return _nms(pred, iou_thresh, [])
-
-
-def megadetector_post_processing(outputs, confidence, input_image_width, input_image_height):
-    preds = []
-    for p in outputs[0]:
-        p = non_max_suppression(p, confidence, 0.45)
-        p = [pred for pred in p if pred[5] == 0]
-        if len(p) > 0:
-            p = np.array(p)
-            p[..., :4] = p[..., :4] / [
-                input_image_width,
-                input_image_height,
-                input_image_width,
-                input_image_height,
-            ]
-        preds.append(p)
-    return preds
-
-
 class MegaDetectorRunner:
     def __init__(self, model_path: str, cpu_cores: int) -> None:
         self.model_path = model_path
@@ -168,25 +96,6 @@ class MegaDetectorRunner:
         self, outputs: List[np.ndarray], confidence: float
     ) -> List[np.ndarray]:
         return megadetector_post_processing(outputs, confidence, IMAGE_SIZE, IMAGE_SIZE)
-
-
-def iter_frames_one_per_second(cap: cv2.VideoCapture, fps: float):
-    """
-    Yield (t_seconds, frame_index, frame_bgr) at ~1Hz using frame seeks.
-    """
-    if fps <= 0:
-        fps = 30.0
-
-    frame_step = max(1, int(round(fps)))
-    frame_idx = 0
-
-    while True:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-        ok, frame = cap.read()
-        if not ok or frame is None:
-            break
-        yield frame_idx / fps, frame_idx, frame
-        frame_idx += frame_step
 
 
 def main() -> int:
