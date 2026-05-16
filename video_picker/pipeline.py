@@ -45,7 +45,8 @@ def collect_samples_one_per_second(
 def process_video(
     *,
     video_path: str,
-    output_path: str | None,
+    output_path: str | None = None,
+    save_callback: Callable[[Dict[str, Any]], None] | None = None,
     md_runner: Any,
     species_runner: Any | None,
     confidence_threshold: float,
@@ -224,6 +225,9 @@ def process_video(
     if output_path:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(out, f, indent=2, sort_keys=False)
+
+    if save_callback:
+        save_callback(out)
 
     return out
 

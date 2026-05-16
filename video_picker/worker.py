@@ -9,6 +9,7 @@ from typing import Any, Deque, Dict, Optional
 
 from .megadetector_video import MegaDetectorRunner, SpeciesNetRunner
 from .pipeline import process_video
+from .database import DetectionDatabase
 
 
 def _emit(obj: Dict[str, Any]) -> None:
@@ -38,6 +39,7 @@ def main() -> int:
 
     md: MegaDetectorRunner | None = None
     species: SpeciesNetRunner | None = None
+    db: DetectionDatabase | None = None
     ready = False
 
     # runtime parameters controlled by init
@@ -50,15 +52,19 @@ def main() -> int:
     _emit({"type": "hello", "pid": os.getpid()})
 
     def handle_init(msg: Dict[str, Any]) -> None:
-        nonlocal md, species, ready, confidence, frames_per_batch
+        nonlocal md, species, db, ready, confidence, frames_per_batch
 
         md_model_path = str(msg.get("md_model_path", "")).strip()
         cpu_cores = int(msg.get("cpu_cores", max(1, (os.cpu_count() or 4) - 1)))
         confidence = float(msg.get("confidence", confidence))
         frames_per_batch = int(msg.get("frames_per_batch", frames_per_batch))
+        db_path = str(msg.get("db_path", "")).strip()
 
         species_model_path = str(msg.get("species_model_path", "")).strip()
         species_labels_path = str(msg.get("species_labels_path", "")).strip()
+
+        if db_path:
+            db = DetectionDatabase(db_path)
 
         if not md_model_path:
             raise ValueError("init.md_model_path is required")
@@ -199,6 +205,7 @@ def main() -> int:
             process_video(
                 video_path=job.video_path,
                 output_path=job.output_path,
+                save_callback=db.save_video_results if db else None,
                 md_runner=md,
                 species_runner=species,
                 confidence_threshold=confidence,

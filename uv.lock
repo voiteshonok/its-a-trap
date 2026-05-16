@@ -52,6 +52,7 @@ dependencies = [
     { name = "onnxruntime", version = "1.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "opencv-python" },
     { name = "pyqt6" },
+    { name = "pyqt6-charts" },
 ]
 
 [package.metadata]
@@ -60,6 +61,7 @@ requires-dist = [
     { name = "onnxruntime" },
     { name = "opencv-python" },
     { name = "pyqt6", specifier = "==6.9.1" },
+    { name = "pyqt6-charts", specifier = "==6.8.0" },
 ]
 
 [[package]]
@@ -477,6 +479,39 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5a/5e/e77fa2761d809cd08d724f44af01a4b6ceb0ff9648e43173187b0e4fac4e/pyqt6-6.9.1-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:055870b703c1a49ca621f8a89e2ec4d848e6c739d39367eb9687af3b056d9aa3", size = 40414608, upload-time = "2025-06-06T08:49:00.26Z" },
     { url = "https://files.pythonhosted.org/packages/c4/09/69cf80456b6a985e06dd24ed0c2d3451e43567bf2807a5f3a86ef7a74a2e/pyqt6-6.9.1-cp39-abi3-win_amd64.whl", hash = "sha256:15b95bd273bb6288b070ed7a9503d5ff377aa4882dd6d175f07cad28cdb21da0", size = 25717996, upload-time = "2025-06-06T08:49:13.208Z" },
     { url = "https://files.pythonhosted.org/packages/52/b3/0839d8fd18b86362a4de384740f2f6b6885b5d06fda7720f8a335425e316/pyqt6-6.9.1-cp39-abi3-win_arm64.whl", hash = "sha256:08792c72d130a02e3248a120f0b9bbb4bf4319095f92865bc5b365b00518f53d", size = 25212132, upload-time = "2025-06-06T08:49:27.41Z" },
+]
+
+[[package]]
+name = "pyqt6-charts"
+version = "6.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyqt6" },
+    { name = "pyqt6-charts-qt6" },
+    { name = "pyqt6-sip", version = "13.10.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pyqt6-sip", version = "13.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/94/51/d37e1527dcf0e2bf5bfdba4200c2297a4224e299d79c4d4cfbe1a363e01b/PyQt6_Charts-6.8.0.tar.gz", hash = "sha256:f86705b8740e3041667ce211aeaa205b750eb6baf4c908f4e3f6dc8c720d10f1", size = 41558, upload-time = "2024-12-12T15:32:47.949Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/2a/5b330877796fc06b448497893f170dadffea41367d578bdb73062a138e3b/PyQt6_Charts-6.8.0-cp39-abi3-macosx_10_14_universal2.whl", hash = "sha256:1b992688f97deea99d025913408acc48f6d554563a91b72adbdd2991ba2b0b35", size = 479183, upload-time = "2024-12-12T15:32:36.607Z" },
+    { url = "https://files.pythonhosted.org/packages/76/13/d8c9b73cae8217364f66abeeb2b22d0f6044b61855235cbf3953563d54c7/PyQt6_Charts-6.8.0-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:f8cbe7005f836f156e09f57b1916ce824931421f9f25e37b0b6c09fae4e4508f", size = 320548, upload-time = "2024-12-28T22:42:50.602Z" },
+    { url = "https://files.pythonhosted.org/packages/06/3f/fc1ec07936793492de6f2ec957d24c6c58a31e78c91cf9c870c7b907b7bb/PyQt6_Charts-6.8.0-cp39-abi3-manylinux_2_35_x86_64.whl", hash = "sha256:2ce660031db9eb572d5c65c34d9fc4a75bc0e21093abfe3b1d0fccc47d95550a", size = 326247, upload-time = "2024-12-12T15:32:39.189Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/6c/f829804667fb6c95e94bccc3adcf399b0a0c5dcf4fd225c998afed57eaf2/PyQt6_Charts-6.8.0-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:3984b7995d8eda5587d893f8fbabde5647bc64a2c27e6f01a3a2758ae12a353f", size = 310813, upload-time = "2024-12-12T15:32:41.844Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/aa/14e576255c4e265de55accc4da54499c5776a14d8b915c792628021fc4cd/PyQt6_Charts-6.8.0-cp39-abi3-win_amd64.whl", hash = "sha256:535e699dace20fc9f8f516e67ca9ff529a79351145d9000ef1a0c61c3bd35858", size = 277954, upload-time = "2024-12-12T15:32:43.436Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/37/5b86a5fe3f3c5f55c9dca132c48900843b83a9c44cfb74964cd50aa2ddd4/PyQt6_Charts-6.8.0-cp39-abi3-win_arm64.whl", hash = "sha256:e633101d1ac82144674c0d12e9d1b08276afab5762f0e4a65587ccbeebf4eeaa", size = 225666, upload-time = "2024-12-12T15:32:46.475Z" },
+]
+
+[[package]]
+name = "pyqt6-charts-qt6"
+version = "6.8.2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ff/1d/da26211731052cf52956b94bfba75732d45e786138311c86ef161ff11eef/PyQt6_Charts_Qt6-6.8.2-py3-none-macosx_10_14_x86_64.whl", hash = "sha256:69c693162fad1a9e7f4b831feecede95ced58ba105c6eb6f234d804d48b579d0", size = 882609, upload-time = "2025-02-06T12:03:57.481Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/f5/b986e045d96189ee8ceb0a0483223d9096720e8fe8318979f16c13ba862a/PyQt6_Charts_Qt6-6.8.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:5c7bcea011315d82d86b131af8f8790d291cb95278854f4a9baaa159d8992cb8", size = 794541, upload-time = "2025-02-06T12:04:01.771Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/b0/f647dd70ab117e327f17194b7a283705012deadbd8531687680c93965230/PyQt6_Charts_Qt6-6.8.2-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:886013b7a6af6a67fefbc7dcb0797a5bc1afbe1bc83c33121c4ea58b99e2aac9", size = 998435, upload-time = "2025-02-06T12:04:04.117Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/37/dd307d146549620d79e8b92d3ceec8f40d8855333e2e8e213f728ba40de8/PyQt6_Charts_Qt6-6.8.2-py3-none-manylinux_2_39_aarch64.whl", hash = "sha256:70037859000802ce8648d9515177e7c3c7e92acd31ca910ae5319f0cae0c50eb", size = 1011483, upload-time = "2025-02-06T12:04:05.688Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/95/c8b4ed5efa8642cad113e359254c360ea21c1ce990bab2cd3d967ab3786c/PyQt6_Charts_Qt6-6.8.2-py3-none-win_amd64.whl", hash = "sha256:0489243fb65e5e091003372035f5f8a7935b70fb19837df4e751f85da10e58f4", size = 896156, upload-time = "2025-02-06T12:04:08.347Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/18/40d59affe947c3b4d31c0b5ac45bc3afa3707f025a95e1b33cc2ad6de951/PyQt6_Charts_Qt6-6.8.2-py3-none-win_arm64.whl", hash = "sha256:229017ffa0defb0855bba0687b3bb4b63f241046b6ca60e12cf9f9282dbffd2c", size = 709398, upload-time = "2025-02-06T12:04:10.013Z" },
 ]
 
 [[package]]
