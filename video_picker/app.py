@@ -33,7 +33,6 @@ from .database import DetectionDatabase
 
 
 DEFAULT_VIDEO_PATH = Path("/home/slava/Videos/v1.AVI")
-DEFAULT_OUTPUT_PATH = Path("output.json")
 
 
 class SettingsDialog(QDialog):
@@ -159,7 +158,6 @@ class VideoPicker(QWidget):
 
         self._worker: QProcess | None = None
         self._worker_stdout_buf = ""
-        self._job_id_to_output: dict[str, str] = {}
         self._queue: list[tuple[str, str]] = []
         self._active_job_id: str | None = None
         self._frames: list[dict] = []
@@ -421,10 +419,7 @@ class VideoPicker(QWidget):
                 # Check if video is in DB
                 stats = self._db.get_video_stats(abs_v_path)
                 if not stats:
-                    # Use a unique name for JSON output even if we use DB
-                    base = v_path.stem
-                    out_path = folder_path / f"{base}_output.json"
-                    videos_to_process.append((abs_v_path, str(out_path)))
+                    videos_to_process.append(abs_v_path)
 
         if not videos_to_process:
             self._set_status("All videos in this folder are already processed.")
@@ -433,14 +428,13 @@ class VideoPicker(QWidget):
         self.process_all_btn.setEnabled(False)
         self._ensure_worker_started()
         
-        for video_path, output_path in videos_to_process:
+        for video_path in videos_to_process:
             job_id = str(uuid4())
-            self._job_id_to_output[job_id] = output_path
             msg = {
                 "type": "enqueue",
                 "job_id": job_id,
                 "video_path": video_path,
-                "output_path": output_path,
+                "output_path": None, # Disable JSON output
             }
             assert self._worker is not None
             self._worker.write((json.dumps(msg) + "\n").encode("utf-8"))
