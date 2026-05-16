@@ -32,8 +32,6 @@ from PyQt6.QtWidgets import (
 from .database import DetectionDatabase
 
 
-DEFAULT_VIDEO_PATH = Path("/home/slava/Videos/v1.AVI")
-
 
 class SettingsDialog(QDialog):
     def __init__(self, parent=None, cpu_cores=4, confidence=0.5):
@@ -434,7 +432,6 @@ class VideoPicker(QWidget):
                 "type": "enqueue",
                 "job_id": job_id,
                 "video_path": video_path,
-                "output_path": None, # Disable JSON output
             }
             assert self._worker is not None
             self._worker.write((json.dumps(msg) + "\n").encode("utf-8"))

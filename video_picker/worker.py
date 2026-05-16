@@ -26,7 +26,6 @@ def _emit_error(msg: str) -> None:
 class Job:
     job_id: str
     video_path: str
-    output_path: str
 
 
 def main() -> int:
@@ -149,14 +148,11 @@ def main() -> int:
         nonlocal q
         job_id = str(msg.get("job_id", "")).strip()
         video_path = str(msg.get("video_path", "")).strip()
-        output_path = str(msg.get("output_path", "")).strip()
         if not job_id:
             raise ValueError("enqueue.job_id is required")
         if not video_path:
             raise ValueError("enqueue.video_path is required")
-        if not output_path:
-            raise ValueError("enqueue.output_path is required")
-        q.append(Job(job_id=job_id, video_path=video_path, output_path=output_path))
+        q.append(Job(job_id=job_id, video_path=video_path))
         _emit({"type": "enqueued", "job_id": job_id, "queue_len": len(q)})
 
     def pump_queue() -> None:
@@ -171,7 +167,6 @@ def main() -> int:
                 "type": "job_started",
                 "job_id": job.job_id,
                 "video_path": job.video_path,
-                "output_path": job.output_path,
             }
         )
 
@@ -204,7 +199,6 @@ def main() -> int:
             t_job0 = time.perf_counter()
             process_video(
                 video_path=job.video_path,
-                output_path=job.output_path,
                 save_callback=db.save_video_results if db else None,
                 md_runner=md,
                 species_runner=species,
@@ -217,7 +211,6 @@ def main() -> int:
                 {
                     "type": "job_finished",
                     "job_id": job.job_id,
-                    "output_path": job.output_path,
                     "elapsed_seconds": float(time.perf_counter() - t_job0),
                 }
             )
