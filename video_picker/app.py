@@ -5,6 +5,14 @@ from pathlib import Path
 from uuid import uuid4
 
 import cv2
+
+from video_picker.paths import (
+    is_frozen,
+    install_root,
+    megadetector_model_path,
+    speciesnet_labels_path,
+    speciesnet_model_path,
+)
 from PyQt6.QtCore import QProcess, Qt
 from PyQt6.QtGui import QBrush, QColor, QCloseEvent, QFont, QImage, QPainter, QPen, QPixmap
 from PyQt6.QtWidgets import (
@@ -189,7 +197,7 @@ class VideoPicker(QWidget):
 
         self._worker = QProcess(self)
         self._worker.setProgram(sys.executable)
-        self._worker.setArguments(["-m", "video_picker.worker"])
+        self._worker.setArguments(["--worker"])
         self._worker.setWorkingDirectory(str(Path.cwd()))
         self._worker.readyReadStandardOutput.connect(self._on_worker_stdout)  # type: ignore[arg-type]
         self._worker.readyReadStandardError.connect(self._on_worker_stderr)  # type: ignore[arg-type]
@@ -200,9 +208,9 @@ class VideoPicker(QWidget):
 
         init_msg = {
             "type": "init",
-            "md_model_path": os.environ.get("MEGADETECTOR_MODEL_PATH", "./models/md_v5a_1_3_640_640_static.onnx"),
-            "species_model_path": os.environ.get("SPECIESNET_MODEL_PATH", "./models/spicesNet_v401a.onnx"),
-            "species_labels_path": os.environ.get("SPECIESNET_LABELS_PATH", "./static/spicesNet_labels_v401a.txtset"),
+            "md_model_path": os.environ.get("MEGADETECTOR_MODEL_PATH", str(megadetector_model_path())),
+            "species_model_path": os.environ.get("SPECIESNET_MODEL_PATH", str(speciesnet_model_path())),
+            "species_labels_path": os.environ.get("SPECIESNET_LABELS_PATH", str(speciesnet_labels_path())),
             "cpu_cores": int(self.batch_spin.value()),
             "confidence": float(self.conf_spin.value()),
             "frames_per_batch": int(os.environ.get("MEGADETECTOR_FRAMES_PER_BATCH", "8")),
@@ -539,8 +547,16 @@ class VideoPicker(QWidget):
 
 
 def main() -> None:
+    if not is_frozen():
+        os.chdir(install_root())
     app = QApplication(sys.argv)
     w = VideoPicker()
     w.show()
     raise SystemExit(app.exec())
- 
+
+
+if __name__ == "__main__":
+    from video_picker.__main__ import main as _run
+
+    _run()
+
