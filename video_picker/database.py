@@ -77,6 +77,20 @@ class DetectionDatabase:
             cursor = conn.execute("SELECT species_name, COUNT(*) FROM detections GROUP BY species_name")
             return {row[0]: row[1] for row in cursor.fetchall()}
 
+    def get_video_paths_with_species(self, species_name: str) -> List[str]:
+        with self._get_conn() as conn:
+            cursor = conn.execute(
+                """
+                SELECT DISTINCT v.abs_path
+                FROM videos v
+                JOIN detections d ON d.video_id = v.id
+                WHERE d.species_name = ?
+                ORDER BY v.filename COLLATE NOCASE
+                """,
+                (species_name,),
+            )
+            return [row[0] for row in cursor.fetchall()]
+
     def get_video_stats(self, abs_path: str) -> Dict[str, Any]:
         with self._get_conn() as conn:
             cursor = conn.execute("SELECT id FROM videos WHERE abs_path = ?", (abs_path,))
