@@ -9,6 +9,7 @@ from pathlib import Path
 _MD_MODEL = "md_v5a_1_3_640_640_static.onnx"
 _SPECIES_MODEL = "spicesNet_v401a.onnx"
 _SPECIES_LABELS = "spicesNet_labels_v401a.txtset"
+_APP_ICON = "icon.png"
 
 
 def is_frozen() -> bool:
@@ -40,3 +41,7 @@ def speciesnet_model_path() -> Path:
 
 def speciesnet_labels_path() -> Path:
     return resource_root() / "static" / _SPECIES_LABELS
+
+
+def app_icon_path() -> Path:
+    return resource_root() / "static" / _APP_ICON

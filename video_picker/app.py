@@ -6,6 +6,12 @@ from uuid import uuid4
 
 import cv2
 
+from video_picker.desktop_integration import (
+    configure_qt_application,
+    install_linux_desktop_entry,
+    load_app_icon,
+    setup_before_qt_app,
+)
 from video_picker.paths import (
     is_frozen,
     install_root,
@@ -39,6 +45,9 @@ class VideoPicker(QWidget):
         super().__init__()
         self.setWindowTitle("Video picker")
         self.setMinimumWidth(1000)
+        icon = load_app_icon()
+        if icon is not None:
+            self.setWindowIcon(icon)
 
         # 2x bigger UI font
         f = self.font()
@@ -197,7 +206,10 @@ class VideoPicker(QWidget):
 
         self._worker = QProcess(self)
         self._worker.setProgram(sys.executable)
-        self._worker.setArguments(["--worker"])
+        if is_frozen():
+            self._worker.setArguments(["--worker"])
+        else:
+            self._worker.setArguments(["-m", "video_picker", "--worker"])
         self._worker.setWorkingDirectory(str(Path.cwd()))
         self._worker.readyReadStandardOutput.connect(self._on_worker_stdout)  # type: ignore[arg-type]
         self._worker.readyReadStandardError.connect(self._on_worker_stderr)  # type: ignore[arg-type]
@@ -549,8 +561,13 @@ class VideoPicker(QWidget):
 def main() -> None:
     if not is_frozen():
         os.chdir(install_root())
+    setup_before_qt_app()
+    install_linux_desktop_entry()
     app = QApplication(sys.argv)
+    icon = configure_qt_application(app)
     w = VideoPicker()
+    if icon is not None:
+        w.setWindowIcon(icon)
     w.show()
     raise SystemExit(app.exec())
 

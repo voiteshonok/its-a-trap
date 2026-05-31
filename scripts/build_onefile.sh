@@ -45,9 +45,37 @@ rm -f "${FINAL}"
 mv "${BUILT}" "${FINAL}"
 chmod +x "${FINAL}"
 
+ICON_NAME="video-picker"
+ICON_SRC="${ROOT}/static/icon.png"
+SHARE_ICONS="${ROOT}/dist/share/icons/hicolor/256x256/apps"
+SHARE_APPS="${ROOT}/dist/share/applications"
+mkdir -p "${SHARE_ICONS}" "${SHARE_APPS}"
+cp "${ICON_SRC}" "${SHARE_ICONS}/${ICON_NAME}.png"
+cp "${ICON_SRC}" "${ROOT}/dist/${ICON_NAME}.png"
+cat > "${SHARE_APPS}/${ICON_NAME}.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Video Picker
+Comment=Run MegaDetector on videos
+Exec=${FINAL} %F
+Icon=${ICON_NAME}
+Terminal=false
+Categories=Utility;Science;
+StartupWMClass=${ICON_NAME}
+EOF
+cp "${SHARE_APPS}/${ICON_NAME}.desktop" "${ROOT}/dist/${ICON_NAME}.desktop"
+chmod +x "${ROOT}/dist/${ICON_NAME}.desktop"
+
+if command -v gio >/dev/null 2>&1; then
+  gio set "${FINAL}" metadata::custom-icon "file://${ROOT}/dist/${ICON_NAME}.png" 2>/dev/null || true
+  gio set "${ROOT}/dist/${ICON_NAME}.desktop" metadata::trusted true 2>/dev/null || true
+fi
+
 echo ""
 echo "Build complete:"
 echo "  ${FINAL}"
+echo "  ${ROOT}/dist/${ICON_NAME}.desktop  (launcher with icon in file manager)"
 echo "  size: $(du -h "${FINAL}" | cut -f1)"
 echo ""
 echo "Run: ${FINAL}"
+echo "Or:  gtk-launch ${ICON_NAME}   (after: xdg-desktop-menu install --novendor dist/share/applications/${ICON_NAME}.desktop)"

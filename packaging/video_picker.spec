@@ -14,11 +14,13 @@ root = Path(SPECPATH).resolve().parent
 md_model = root / "models" / "md_v5a_1_3_640_640_static.onnx"
 species_model = root / "models" / "spicesNet_v401a.onnx"
 species_labels = root / "static" / "spicesNet_labels_v401a.txtset"
+app_icon = root / "static" / "icon.png"
 
 for path, label in (
     (md_model, "MegaDetector ONNX"),
     (species_model, "SpeciesNet ONNX"),
     (species_labels, "SpeciesNet labels"),
+    (app_icon, "app icon"),
 ):
     if not path.is_file():
         raise SystemExit(f"Missing {label}: {path}")
@@ -27,6 +29,7 @@ datas = [
     (str(md_model), "models"),
     (str(species_model), "models"),
     (str(species_labels), "static"),
+    (str(app_icon), "static"),
 ]
 binaries = []
 hiddenimports = [
