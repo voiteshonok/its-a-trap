@@ -163,7 +163,7 @@ def main() -> int:
         logger.info("SpeciesNet: enabled model=%s labels=%s", os.path.abspath(args.species_model), os.path.abspath(args.species_labels))
     else:
         logger.info("SpeciesNet: disabled (no model path provided)")
-    frames_per_batch = int(os.environ.get("MEGADETECTOR_FRAMES_PER_BATCH", "8"))
+    frames_per_batch = int(os.environ.get("MEGADETECTOR_FRAMES_PER_BATCH", str(args.batch_size)))
     frames_per_batch = max(1, frames_per_batch)
     logger.info(
         "Params: confidence=%.3f cpu_cores=%d frames_per_batch=%d sample_rate_hz=1.0",

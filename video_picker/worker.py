@@ -56,7 +56,7 @@ def main() -> int:
         md_model_path = str(msg.get("md_model_path", "")).strip()
         cpu_cores = int(msg.get("cpu_cores", max(1, (os.cpu_count() or 4) - 1)))
         confidence = float(msg.get("confidence", confidence))
-        frames_per_batch = int(msg.get("frames_per_batch", frames_per_batch))
+        frames_per_batch = int(msg.get("frames_per_batch", cpu_cores))
         db_path = str(msg.get("db_path", "")).strip()
 
         species_model_path = str(msg.get("species_model_path", "")).strip()
