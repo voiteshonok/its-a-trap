@@ -710,7 +710,7 @@ class VideoPicker(QWidget):
             "db_path": self._db.db_path if self._db else "",
             "cpu_cores": self._cpu_cores,
             "confidence": self._confidence,
-            "frames_per_batch": int(os.environ.get("MEGADETECTOR_FRAMES_PER_BATCH", "8")),
+            "frames_per_batch": self._cpu_cores,
         }
         self._worker.write((json.dumps(init_msg) + "\n").encode("utf-8"))
 
