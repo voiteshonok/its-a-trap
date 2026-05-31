@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 from typing import Any, Callable, Dict, List, Tuple
@@ -6,7 +7,14 @@ from typing import Any, Callable, Dict, List, Tuple
 import cv2
 import numpy as np
 
+from .motion_filter import (
+    MotionFilterParams,
+    log_motion_filter_summary,
+    select_sample_indices_for_md,
+)
 from .utils import crop_norm_xyxy_from_bgr
+
+logger = logging.getLogger(__name__)
 
 
 def iter_frames_one_per_second(cap: cv2.VideoCapture, fps: float):
@@ -28,20 +36,28 @@ def iter_frames_one_per_second(cap: cv2.VideoCapture, fps: float):
         frame_idx += frame_step
 
 
+def collect_samples_one_per_second(
+    cap: cv2.VideoCapture, fps: float
+) -> List[Tuple[float, int, np.ndarray]]:
+    return list(iter_frames_one_per_second(cap, fps))
+
+
 def process_video(
     *,
     video_path: str,
-    output_path: str | None,
+    save_callback: Callable[[Dict[str, Any]], None] | None = None,
     md_runner: Any,
     species_runner: Any | None,
     confidence_threshold: float,
     frames_per_batch: int,
     sample_rate_hz: float = 1.0,
+    motion_filter: MotionFilterParams | None = None,
     on_progress: Callable[[Dict[str, Any]], None] | None = None,
 ) -> Dict[str, Any]:
     """
-    Run MegaDetector at ~1Hz over a video, optionally classify MD crops with SpeciesNet,
-    and return a JSON-serializable dict. If output_path is provided, also writes JSON.
+    Sample video at ~1 Hz, motion-gate samples (median background), then run MegaDetector
+    on selected spans (min..max per motion cluster). Short videos (<10s or <10 samples)
+    skip motion filtering and process all 1 Hz samples.
     """
     if sample_rate_hz != 1.0:
         raise ValueError("Only sample_rate_hz=1.0 is currently supported")
@@ -55,6 +71,8 @@ def process_video(
     duration_s = (total_frames / fps) if fps > 0 else None
 
     frames_per_batch = max(1, int(frames_per_batch))
+    motion_meta: Dict[str, Any] = {}
+    samples: List[Tuple[float, int, np.ndarray]] = []
 
     frames_batch: List[np.ndarray] = []
     metas_batch: List[Tuple[float, int]] = []
@@ -147,7 +165,20 @@ def process_video(
         orig_bgr_batch.clear()
 
     try:
-        for t_sec, frame_idx, frame_bgr in iter_frames_one_per_second(cap, fps):
+        samples = collect_samples_one_per_second(cap, fps)
+        logger.info("Collected %d samples at ~1 Hz from %s", len(samples), video_path)
+        motion_meta = select_sample_indices_for_md(
+            [f for _, _, f in samples],
+            duration_seconds=duration_s,
+            params=motion_filter,
+        )
+        video_frame_indices = [int(frame_idx) for _, frame_idx, _ in samples]
+        log_motion_filter_summary(motion_meta, video_frame_indices=video_frame_indices)
+        process_set = set(motion_meta["processed_sample_indices"])
+
+        for sample_i, (t_sec, frame_idx, frame_bgr) in enumerate(samples):
+            if sample_i not in process_set:
+                continue
             inp = md_runner.preprocess_frame_bgr(frame_bgr)
             frames_batch.append(inp)
             metas_batch.append((t_sec, frame_idx))
@@ -166,9 +197,11 @@ def process_video(
         "model_path": os.path.abspath(getattr(md_runner, "model_path", "")),
         "confidence_threshold": float(confidence_threshold),
         "sample_rate_hz": float(sample_rate_hz),
+        "motion_filter": motion_meta,
         "video_fps": fps,
         "total_frames": total_frames,
         "duration_seconds": duration_s,
+        "samples_at_1hz": len(samples),
         "ort_threads": getattr(md_runner, "ort_threads", None),
         "speciesnet": (
             {
@@ -188,9 +221,8 @@ def process_video(
         "frames": results,
     }
 
-    if output_path:
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(out, f, indent=2, sort_keys=False)
+    if save_callback:
+        save_callback(out)
 
     return out
 

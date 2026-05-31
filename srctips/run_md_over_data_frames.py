@@ -17,6 +17,8 @@ import cv2
 import numpy as np
 import onnxruntime
 
+from video_picker.md_postprocess import megadetector_post_processing
+
 
 logger = logging.getLogger("run_md_over_data_frames")
 
@@ -33,86 +35,6 @@ def preprocess_bgr_to_md_input(bgr: np.ndarray) -> np.ndarray:
     chw = np.transpose(rgb, (2, 0, 1)).astype(np.float32)
     nchw = np.expand_dims(chw, axis=0)
     return nchw / 255.0
-
-
-# Post-processing matches video_picker/megadetector_video.py (NMS + animal-only), except
-# _nms is iterative so very low -c does not blow the Python recursion limit.
-
-
-def _calc_ious(b0, bx):
-    i_area = np.maximum(
-        np.minimum(b0[2:4], bx[..., 2:4]) - np.maximum(b0[:2], bx[..., :2]), 0
-    ).prod(axis=1)
-
-    u_area = (
-        (b0[2:4] - b0[:2]).prod(axis=0)
-        + (bx[..., 2:4] - bx[..., :2]).prod(axis=-1)
-        - i_area
-    )
-
-    return i_area / u_area
-
-
-def _nms(pred, iou_thresh, npred):
-    # Iterative NMS (same logic as the recursive version, but avoids recursion limits
-    # when conf_thresh is set very low).
-    if len(pred) == 0:
-        return npred
-
-    cur = pred
-    while len(cur) > 0:
-        p0 = cur[0]
-        npred.append(p0)
-
-        px = cur[1:]
-        if len(px) == 0:
-            break
-
-        ious = _calc_ious(p0, px)
-        ious[px[..., 5] != p0[5]] = 0
-        cur = px[ious < iou_thresh]
-
-    return npred
-
-
-def _xywh2xyxy(xywh):
-    xyxy = np.zeros_like(xywh)
-    xc, yc, half_w, half_h = xywh[:, 0], xywh[:, 1], xywh[:, 2] / 2, xywh[:, 3] / 2
-    xyxy[:, 0] = xc - half_w
-    xyxy[:, 1] = yc - half_h
-    xyxy[:, 2] = xc + half_w
-    xyxy[:, 3] = yc + half_h
-    return xyxy
-
-
-def non_max_suppression(pred, conf_thresh=0.0, iou_thresh=0.45):
-    pred = pred[pred[..., 4] > conf_thresh]
-    pred = pred[np.flip(np.argsort(pred[..., 4], axis=-1), axis=0)]
-
-    pred[..., 5] = np.argmax(pred[..., 5:], axis=-1)
-    pred = pred[..., :6]
-    pred[..., :4] = _xywh2xyxy(pred[..., :4])
-
-    return _nms(pred, iou_thresh, [])
-
-
-def megadetector_post_processing(
-    outputs, confidence: float, input_image_width: int, input_image_height: int
-):
-    preds = []
-    for p in outputs[0]:
-        p = non_max_suppression(p, confidence, 0.45)
-        p = [pred for pred in p if pred[5] == 0]  # class 0 = animal
-        if len(p) > 0:
-            p = np.array(p)
-            p[..., :4] = p[..., :4] / [
-                input_image_width,
-                input_image_height,
-                input_image_width,
-                input_image_height,
-            ]
-        preds.append(p)
-    return preds
 
 
 def configure_ort_cpu_session_threads(sess_options: onnxruntime.SessionOptions) -> Dict[str, Any]:

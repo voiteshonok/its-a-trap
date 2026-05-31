@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import time
@@ -8,6 +9,7 @@ from typing import Any, Deque, Dict, Optional
 
 from .megadetector_video import MegaDetectorRunner, SpeciesNetRunner
 from .pipeline import process_video
+from .database import DetectionDatabase
 
 
 def _emit(obj: Dict[str, Any]) -> None:
@@ -24,12 +26,19 @@ def _emit_error(msg: str) -> None:
 class Job:
     job_id: str
     video_path: str
-    output_path: str
 
 
 def main() -> int:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=os.environ.get("MEGADETECTOR_LOG_LEVEL", "INFO").upper(),
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+            stream=sys.stderr,
+        )
+
     md: MegaDetectorRunner | None = None
     species: SpeciesNetRunner | None = None
+    db: DetectionDatabase | None = None
     ready = False
 
     # runtime parameters controlled by init
@@ -42,15 +51,19 @@ def main() -> int:
     _emit({"type": "hello", "pid": os.getpid()})
 
     def handle_init(msg: Dict[str, Any]) -> None:
-        nonlocal md, species, ready, confidence, frames_per_batch
+        nonlocal md, species, db, ready, confidence, frames_per_batch
 
         md_model_path = str(msg.get("md_model_path", "")).strip()
         cpu_cores = int(msg.get("cpu_cores", max(1, (os.cpu_count() or 4) - 1)))
         confidence = float(msg.get("confidence", confidence))
         frames_per_batch = int(msg.get("frames_per_batch", frames_per_batch))
+        db_path = str(msg.get("db_path", "")).strip()
 
         species_model_path = str(msg.get("species_model_path", "")).strip()
         species_labels_path = str(msg.get("species_labels_path", "")).strip()
+
+        if db_path:
+            db = DetectionDatabase(db_path)
 
         if not md_model_path:
             raise ValueError("init.md_model_path is required")
@@ -135,14 +148,11 @@ def main() -> int:
         nonlocal q
         job_id = str(msg.get("job_id", "")).strip()
         video_path = str(msg.get("video_path", "")).strip()
-        output_path = str(msg.get("output_path", "")).strip()
         if not job_id:
             raise ValueError("enqueue.job_id is required")
         if not video_path:
             raise ValueError("enqueue.video_path is required")
-        if not output_path:
-            raise ValueError("enqueue.output_path is required")
-        q.append(Job(job_id=job_id, video_path=video_path, output_path=output_path))
+        q.append(Job(job_id=job_id, video_path=video_path))
         _emit({"type": "enqueued", "job_id": job_id, "queue_len": len(q)})
 
     def pump_queue() -> None:
@@ -157,7 +167,6 @@ def main() -> int:
                 "type": "job_started",
                 "job_id": job.job_id,
                 "video_path": job.video_path,
-                "output_path": job.output_path,
             }
         )
 
@@ -190,7 +199,7 @@ def main() -> int:
             t_job0 = time.perf_counter()
             process_video(
                 video_path=job.video_path,
-                output_path=job.output_path,
+                save_callback=db.save_video_results if db else None,
                 md_runner=md,
                 species_runner=species,
                 confidence_threshold=confidence,
@@ -202,7 +211,6 @@ def main() -> int:
                 {
                     "type": "job_finished",
                     "job_id": job.job_id,
-                    "output_path": job.output_path,
                     "elapsed_seconds": float(time.perf_counter() - t_job0),
                 }
             )

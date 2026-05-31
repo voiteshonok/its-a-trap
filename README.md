@@ -1,60 +1,45 @@
-## Video picker (PyQt + uv)
+# Video Picker Dashboard (PyQt6 + uv)
 
-Simple PyQt app that lets you pick a video file, choose **batch size** and **confidence**, then run MegaDetector and write results to `./output.json`.
+An animal detection and classification dashboard. It scans folders for videos, identifies animals using **MegaDetector**, and classifies species with **SpeciesNet**. Results are stored in a local SQLite database for fast browsing and statistics.
 
-### Setup (uv)
+## 🚀 Key Features
+- **Folder-based Workflow:** Open a directory and see all videos at once.
+- **Batch Processing:** Detect animals across multiple videos in the background.
+- **SQLite Storage:** Results are saved in a hidden `.detections.db` inside each processed folder.
+- **Interactive Statistics:** Folder-wide species distribution charts using `PyQt6.QtCharts`.
+- **Enhanced Sidebar:** Sortable table showing detected animals and unique species counts.
 
-Create a virtual environment and install deps:
+## 🛠️ Setup
 
+Ensure you have [uv](https://github.com/astral-sh/uv) installed.
+
+1. **Install dependencies:**
+   ```bash
+   uv sync
+   ```
+
+2. **Download Models:**
+   Place the following `.onnx` files into a `models/` directory in the project root:
+   - `md_v5a_1_3_640_640_static.onnx` (MegaDetector)
+   - `spicesNet_v401a.onnx` (SpeciesNet)
+
+## 🏃 How to Run
+
+Launch the dashboard with:
 ```bash
-uv venv
-uv pip install -e .
+uv run python -m video_picker.app
 ```
 
-Place ONNX models in `models/` (not in git):
+## 📂 Data Management
+- **Database:** The app creates a `.detections.db` file in the folder you open. This contains all bounding boxes, species names, and timestamps.
+- **Exporting:** You can still run the legacy batch script for images if needed:
+  ```bash
+  uv run python srctips/run_md_over_data_frames.py --data-dir ./my_images -b 8
+  ```
 
-- `models/md_v5a_1_3_640_640_static.onnx`
-- `models/spicesNet_v401a.onnx`
-
-Labels file: `static/spicesNet_labels_v401a.txtset`
-
-### Run
-
-```bash
-uv run video-picker
-```
-
-(Alternative)
-
-```bash
-uv run python -m video_picker
-```
-
-To run the batch script:
-
-```bash
-uv run python srctips/run_md_over_data_frames.py -b 8 -c 0.0
-```
-
-### Build (one-file installer)
-
-Builds a single executable with models and static assets embedded (~800 MB). Run the build **on the target OS** (Linux/macOS/Windows wheels are platform-specific).
-
-Prerequisites: [uv](https://docs.astral.sh/uv/), project `.venv`, and `models/` populated as above.
-
-| OS | Command | Output |
-|----|---------|--------|
-| Linux | `./scripts/build_onefile.sh` | `dist/video-picker-linux` |
-| macOS | `./scripts/build_onefile.sh` | `dist/video-picker-macos` |
-| Windows | `.\scripts\build_onefile.ps1` | `dist\video-picker-windows.exe` |
-
-Example (Linux):
-
-```bash
-uv venv
-uv pip install -e .
-./scripts/build_onefile.sh
-./dist/video-picker-linux
-```
-
-The first launch may take a moment while PyInstaller extracts bundled files to a temp directory.
+## 🧩 Requirements
+- Python >= 3.9
+- PyQt6 & PyQt6-Charts
+- OpenCV
+- ONNX Runtime
+- NumPy
