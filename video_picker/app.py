@@ -6,9 +6,26 @@ from uuid import uuid4
 from typing import Any
 
 import cv2
+
+
+from video_picker.desktop_integration import (
+    configure_qt_application,
+    install_linux_desktop_entry,
+    load_app_icon,
+    setup_before_qt_app,
+)
+from video_picker.paths import (
+    is_frozen,
+    install_root,
+    megadetector_model_path,
+    speciesnet_labels_path,
+    speciesnet_model_path,
+)
+
 from PyQt6.QtCore import QProcess, Qt, QModelIndex, QDir, QSortFilterProxyModel
 from PyQt6.QtGui import QBrush, QColor, QCloseEvent, QFont, QImage, QPainter, QPen, QPixmap, QFileSystemModel
 from PyQt6.QtCharts import QChart, QChartView, QPieSeries, QPieSlice
+
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
