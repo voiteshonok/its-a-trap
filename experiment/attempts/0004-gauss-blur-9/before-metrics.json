@@ -1,0 +1,17 @@
+{
+  "name": "before",
+  "attempt": "experiment\\attempts\\0004-gauss-blur-9",
+  "command": "C:\\Users\\Vlad\\cv\\its-a-trap\\.venv\\Scripts\\python.exe C:\\Users\\Vlad\\cv\\its-a-trap\\scripts\\run_md_over_data_frames.py --data-dir data --model models/md_v5a_1_3_640_640_static.onnx --batch-size 16 --confidence-threshold 0.5 --output C:\\Users\\Vlad\\cv\\its-a-trap\\experiment\\attempts\\0004-gauss-blur-9\\before-confidences.json",
+  "output": "experiment\\attempts\\0004-gauss-blur-9\\before-confidences.json",
+  "summary": {
+    "frame_count": 75,
+    "null_count": 0,
+    "runtime_seconds": 3.5414300998672843,
+    "fps": 21.177885172097746,
+    "threshold": 0.5,
+    "mean_confidence": 0.6323058501879374,
+    "median_confidence": 0.8979266881942749,
+    "min_confidence": 0.0,
+    "max_confidence": 0.9825400710105896
+  }
+}

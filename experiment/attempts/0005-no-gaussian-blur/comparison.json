@@ -1,0 +1,710 @@
+{
+  "before": "experiment\\attempts\\0005-no-gaussian-blur\\before-confidences.json",
+  "after": "experiment\\attempts\\0005-no-gaussian-blur\\after-confidences.json",
+  "threshold": 0.5,
+  "summary": {
+    "mean_confidence": 0.0011794535319010757,
+    "runtime_seconds": -0.2653662997763604,
+    "fps": 1.634024538257922,
+    "false_positive_pct": null,
+    "false_negative_pct": null,
+    "correct_hit_pct": null
+  },
+  "frames": {
+    "largest_positive_movement": {
+      "frame": "v4_frames/frame_0004.jpg",
+      "expected_animal": null,
+      "before_confidence": 0.7296209931373596,
+      "after_confidence": 0.7669884562492371,
+      "score_difference": 0.03736746311187744,
+      "before_prediction": "positive",
+      "after_prediction": "positive"
+    },
+    "largest_negative_movement": {
+      "frame": "v3_frames/frame_0013.jpg",
+      "expected_animal": null,
+      "before_confidence": 0.8950531482696533,
+      "after_confidence": 0.879101574420929,
+      "score_difference": -0.015951573848724365,
+      "before_prediction": "positive",
+      "after_prediction": "positive"
+    },
+    "rows": [
+      {
+        "frame": "v1_frames/frame_0001.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9176713228225708,
+        "after_confidence": 0.9187855124473572,
+        "score_difference": 0.001114189624786377,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0002.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9190108776092529,
+        "after_confidence": 0.9211547374725342,
+        "score_difference": 0.00214385986328125,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0003.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.950823187828064,
+        "after_confidence": 0.9512411952018738,
+        "score_difference": 0.00041800737380981445,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0004.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9589747786521912,
+        "after_confidence": 0.9599280953407288,
+        "score_difference": 0.0009533166885375977,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0005.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9291775822639465,
+        "after_confidence": 0.9302928447723389,
+        "score_difference": 0.001115262508392334,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0006.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.893437385559082,
+        "after_confidence": 0.8944534063339233,
+        "score_difference": 0.0010160207748413086,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0007.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9554256796836853,
+        "after_confidence": 0.9556639790534973,
+        "score_difference": 0.00023829936981201172,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0008.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9370713233947754,
+        "after_confidence": 0.9387568235397339,
+        "score_difference": 0.001685500144958496,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0009.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.911983847618103,
+        "after_confidence": 0.9135439395904541,
+        "score_difference": 0.0015600919723510742,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0010.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8407439589500427,
+        "after_confidence": 0.8508377075195312,
+        "score_difference": 0.010093748569488525,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0011.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9185609221458435,
+        "after_confidence": 0.9146038293838501,
+        "score_difference": -0.003957092761993408,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0012.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8741755485534668,
+        "after_confidence": 0.8737041354179382,
+        "score_difference": -0.00047141313552856445,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0013.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.7831903100013733,
+        "after_confidence": 0.7933487892150879,
+        "score_difference": 0.0101584792137146,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0014.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.575150191783905,
+        "after_confidence": 0.5687752366065979,
+        "score_difference": -0.006374955177307129,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v1_frames/frame_0015.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.5468505024909973,
+        "after_confidence": 0.5445210337638855,
+        "score_difference": -0.0023294687271118164,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v2_frames/frame_0001.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9667288661003113,
+        "after_confidence": 0.9674686193466187,
+        "score_difference": 0.000739753246307373,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v2_frames/frame_0002.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.7070819139480591,
+        "after_confidence": 0.7208291292190552,
+        "score_difference": 0.013747215270996094,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v2_frames/frame_0003.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.836276650428772,
+        "after_confidence": 0.8450838923454285,
+        "score_difference": 0.008807241916656494,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v2_frames/frame_0004.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0005.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0006.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0007.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0008.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0009.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0010.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0011.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0012.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0013.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0014.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v2_frames/frame_0015.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v3_frames/frame_0001.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9630728363990784,
+        "after_confidence": 0.9635706543922424,
+        "score_difference": 0.0004978179931640625,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0002.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.963858962059021,
+        "after_confidence": 0.9646430015563965,
+        "score_difference": 0.0007840394973754883,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0003.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.962986171245575,
+        "after_confidence": 0.9640756249427795,
+        "score_difference": 0.0010894536972045898,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0004.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9543667435646057,
+        "after_confidence": 0.9560227394104004,
+        "score_difference": 0.0016559958457946777,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0005.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9621053338050842,
+        "after_confidence": 0.9630414247512817,
+        "score_difference": 0.0009360909461975098,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0006.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9637080430984497,
+        "after_confidence": 0.9639049172401428,
+        "score_difference": 0.00019687414169311523,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0007.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9509021639823914,
+        "after_confidence": 0.9501078724861145,
+        "score_difference": -0.0007942914962768555,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0008.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8473360538482666,
+        "after_confidence": 0.8467552661895752,
+        "score_difference": -0.0005807876586914062,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0009.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8869614005088806,
+        "after_confidence": 0.8880165219306946,
+        "score_difference": 0.0010551214218139648,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0010.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8979266881942749,
+        "after_confidence": 0.896803081035614,
+        "score_difference": -0.0011236071586608887,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0011.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8812887668609619,
+        "after_confidence": 0.880297839641571,
+        "score_difference": -0.0009909272193908691,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0012.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8778201341629028,
+        "after_confidence": 0.8816200494766235,
+        "score_difference": 0.003799915313720703,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0013.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.8950531482696533,
+        "after_confidence": 0.879101574420929,
+        "score_difference": -0.015951573848724365,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0014.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9305665493011475,
+        "after_confidence": 0.927544116973877,
+        "score_difference": -0.003022432327270508,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v3_frames/frame_0015.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9613531231880188,
+        "after_confidence": 0.9625372290611267,
+        "score_difference": 0.0011841058731079102,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v4_frames/frame_0001.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9787641763687134,
+        "after_confidence": 0.9786918759346008,
+        "score_difference": -7.230043411254883e-05,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v4_frames/frame_0002.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9825400710105896,
+        "after_confidence": 0.9821517467498779,
+        "score_difference": -0.0003883242607116699,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v4_frames/frame_0003.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9742389917373657,
+        "after_confidence": 0.9726186394691467,
+        "score_difference": -0.0016203522682189941,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v4_frames/frame_0004.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.7296209931373596,
+        "after_confidence": 0.7669884562492371,
+        "score_difference": 0.03736746311187744,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v4_frames/frame_0005.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.6225836277008057,
+        "after_confidence": 0.6410965919494629,
+        "score_difference": 0.018512964248657227,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v4_frames/frame_0006.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0007.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0008.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0009.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0010.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0011.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0012.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0013.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0014.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v4_frames/frame_0015.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.0,
+        "after_confidence": 0.0,
+        "score_difference": 0.0,
+        "before_prediction": "negative",
+        "after_prediction": "negative"
+      },
+      {
+        "frame": "v5_frames/frame_0001.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.933849573135376,
+        "after_confidence": 0.934118390083313,
+        "score_difference": 0.0002688169479370117,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0002.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9230761528015137,
+        "after_confidence": 0.9245468974113464,
+        "score_difference": 0.0014707446098327637,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0003.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9171310663223267,
+        "after_confidence": 0.9170500636100769,
+        "score_difference": -8.100271224975586e-05,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0004.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9230286478996277,
+        "after_confidence": 0.9233643412590027,
+        "score_difference": 0.000335693359375,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0005.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9336565136909485,
+        "after_confidence": 0.933173656463623,
+        "score_difference": -0.00048285722732543945,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0006.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9318131804466248,
+        "after_confidence": 0.9301446080207825,
+        "score_difference": -0.0016685724258422852,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0007.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9180166721343994,
+        "after_confidence": 0.9180434346199036,
+        "score_difference": 2.676248550415039e-05,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0008.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9111204147338867,
+        "after_confidence": 0.9100061655044556,
+        "score_difference": -0.0011142492294311523,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0009.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9109324812889099,
+        "after_confidence": 0.9107887148857117,
+        "score_difference": -0.0001437664031982422,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0010.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9080912470817566,
+        "after_confidence": 0.9088058471679688,
+        "score_difference": 0.0007146000862121582,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0011.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9144219756126404,
+        "after_confidence": 0.9144414067268372,
+        "score_difference": 1.9431114196777344e-05,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0012.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9066916704177856,
+        "after_confidence": 0.9086694121360779,
+        "score_difference": 0.0019777417182922363,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0013.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9215583205223083,
+        "after_confidence": 0.9229984879493713,
+        "score_difference": 0.0014401674270629883,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0014.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9325010776519775,
+        "after_confidence": 0.9333861470222473,
+        "score_difference": 0.0008850693702697754,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      },
+      {
+        "frame": "v5_frames/frame_0015.jpg",
+        "expected_animal": null,
+        "before_confidence": 0.9276609420776367,
+        "after_confidence": 0.9292780756950378,
+        "score_difference": 0.001617133617401123,
+        "before_prediction": "positive",
+        "after_prediction": "positive"
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "inter-area",
+  "attempt": "experiment\\attempts\\0013-resize-interpolation",
+  "command": "C:\\Users\\Vlad\\cv\\its-a-trap\\.venv\\Scripts\\python.exe C:\\Users\\Vlad\\cv\\its-a-trap\\scripts\\run_md_over_data_frames.py --data-dir data --model models/md_v5a_1_3_640_640_static.onnx --batch-size 16 --confidence-threshold 0.5 --output C:\\Users\\Vlad\\cv\\its-a-trap\\experiment\\attempts\\0013-resize-interpolation\\inter-area-confidences.json",
+  "output": "experiment\\attempts\\0013-resize-interpolation\\inter-area-confidences.json",
+  "summary": {
+    "frame_count": 75,
+    "null_count": 0,
+    "runtime_seconds": 3.5505937999114394,
+    "mean_frame_processing_seconds": 0.04734125066548586,
+    "threshold": 0.5,
+    "mean_confidence": 0.6357473063468934,
+    "median_confidence": 0.9069521427154541,
+    "min_confidence": 0.0,
+    "max_confidence": 0.9824551939964294,
+    "labeled_frame_count": 75,
+    "mean_confidence_positive": 0.8996424146418301,
+    "mean_confidence_negative": 0.0,
+    "false_positive_count": 0,
+    "false_negative_count": 0,
+    "correct_hit_count": 75,
+    "false_positive_pct": 0.0,
+    "false_negative_pct": 0.0,
+    "correct_hit_pct": 100.0
+  }
+}

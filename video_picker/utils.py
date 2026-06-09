@@ -4,6 +4,58 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import onnxruntime
 
+_DLL_DIRECTORY_HANDLES: List[Any] = []
+
+
+def configure_onnxruntime_cuda_dlls() -> None:
+    """Make NVIDIA runtime wheels discoverable by ONNX Runtime on Windows."""
+    if os.name != "nt":
+        return
+
+    try:
+        import nvidia  # type: ignore[import-not-found]
+    except ImportError:
+        return
+
+    nvidia_roots = list(getattr(nvidia, "__path__", []))
+    bin_dirs: List[str] = []
+    for root in nvidia_roots:
+        for package in (
+            "cublas",
+            "cuda_nvrtc",
+            "cuda_runtime",
+            "cudnn",
+            "cufft",
+            "curand",
+            "nvjitlink",
+        ):
+            bin_dir = os.path.join(root, package, "bin")
+            if os.path.isdir(bin_dir):
+                bin_dirs.append(bin_dir)
+
+    for bin_dir in bin_dirs:
+        if hasattr(os, "add_dll_directory"):
+            _DLL_DIRECTORY_HANDLES.append(os.add_dll_directory(bin_dir))
+
+    if bin_dirs:
+        os.environ["PATH"] = os.pathsep.join(bin_dirs + [os.environ.get("PATH", "")])
+
+
+def prepare_onnxruntime_cuda() -> None:
+    configure_onnxruntime_cuda_dlls()
+    preload_dlls = getattr(onnxruntime, "preload_dlls", None)
+    if preload_dlls is not None and "CUDAExecutionProvider" in onnxruntime.get_available_providers():
+        preload_dlls()
+
+
+def get_onnxruntime_providers() -> List[str]:
+    avail = set(onnxruntime.get_available_providers())
+    providers: List[str] = []
+    if "CUDAExecutionProvider" in avail:
+        providers.append("CUDAExecutionProvider")
+    providers.append("CPUExecutionProvider")
+    return providers
+
 
 def load_txtset_labels_last_field(label_path: str) -> List[str]:
     labels: List[str] = []
