@@ -18,6 +18,12 @@ import numpy as np
 import onnxruntime
 
 from video_picker.md_postprocess import megadetector_post_processing
+from video_picker.utils import (
+    configure_ort_cpu_session_threads,
+    get_onnxruntime_providers,
+    prepare_onnxruntime_cuda,
+    run_onnx_with_stacked_batch,
+)
 
 
 logger = logging.getLogger("run_md_over_data_frames")
@@ -27,64 +33,26 @@ IMAGE_SIZE = 640
 
 
 def preprocess_bgr_to_md_input(bgr: np.ndarray) -> np.ndarray:
-    # Light blur before resize (same idea as video_picker/megadetector_video if aligned there).
-    bgr = cv2.GaussianBlur(bgr, (3, 3), 0)
+    height, width = bgr.shape[:2]
+    scale = min(IMAGE_SIZE / width, IMAGE_SIZE / height)
+    resized_width = max(1, int(round(width * scale)))
+    resized_height = max(1, int(round(height * scale)))
+    resized_content = cv2.resize(
+        bgr, (resized_width, resized_height), interpolation=cv2.INTER_LINEAR
+    )
 
-    resized = cv2.resize(bgr, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
+    resized = np.full((IMAGE_SIZE, IMAGE_SIZE, 3), 114, dtype=bgr.dtype)
+    top = (IMAGE_SIZE - resized_height) // 2
+    left = (IMAGE_SIZE - resized_width) // 2
+    resized[top : top + resized_height, left : left + resized_width] = resized_content
+
+    blurred = cv2.GaussianBlur(resized, (0, 0), 1.0)
+    resized = cv2.addWeighted(resized, 1.5, blurred, -0.5, 0)
+
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     chw = np.transpose(rgb, (2, 0, 1)).astype(np.float32)
     nchw = np.expand_dims(chw, axis=0)
     return nchw / 255.0
-
-
-def configure_ort_cpu_session_threads(sess_options: onnxruntime.SessionOptions) -> Dict[str, Any]:
-    if os.environ.get("MEGADETECTOR_ORT_USE_DEFAULT_THREADS", "").lower() in (
-        "1",
-        "true",
-        "yes",
-    ):
-        return {"note": "MEGADETECTOR_ORT_USE_DEFAULT_THREADS=1 (ORT defaults)"}
-
-    cpu = os.cpu_count() or 4
-    intra_default = max(1, min(cpu, 16))
-    inter_default = 1
-
-    intra_raw = os.environ.get("MEGADETECTOR_ORT_INTRA_OP_NUM_THREADS", "").strip()
-    inter_raw = os.environ.get("MEGADETECTOR_ORT_INTER_OP_NUM_THREADS", "").strip()
-
-    intra = int(intra_raw) if intra_raw else intra_default
-    inter = int(inter_raw) if inter_raw else inter_default
-    intra = max(1, intra)
-    inter = max(1, inter)
-
-    sess_options.intra_op_num_threads = intra
-    sess_options.inter_op_num_threads = inter
-
-    return {
-        "intra_op_num_threads": intra,
-        "inter_op_num_threads": inter,
-        "source": "env" if (intra_raw or inter_raw) else f"heuristic (os.cpu_count()={cpu})",
-    }
-
-
-def run_onnx_with_stacked_batch(
-    session: onnxruntime.InferenceSession, input_name: str, batch_tensor: np.ndarray
-) -> Tuple[List[np.ndarray], str]:
-    b = int(batch_tensor.shape[0])
-    shape = session.get_inputs()[0].shape
-    fixed_batch_1 = shape is not None and len(shape) > 0 and shape[0] == 1
-
-    if b == 1:
-        return session.run(None, {input_name: batch_tensor}), "single_forward"
-
-    if not fixed_batch_1:
-        return session.run(None, {input_name: batch_tensor}), "single_forward_batched"
-
-    outs0 = []
-    for i in range(b):
-        one = session.run(None, {input_name: batch_tensor[i : i + 1]})
-        outs0.append(one[0])
-    return [np.concatenate(outs0, axis=0)], f"B={b}_sequential_fixed_batch1_model"
 
 
 @dataclass(frozen=True)
@@ -122,15 +90,20 @@ def run_on_images(
     if not os.path.exists(model_path):
         raise SystemExit(f"Model not found: {model_path}")
 
-    # CPU-only session; thread counts follow MEGADETECTOR_ORT_* env (see configure_ort_cpu_session_threads).
+    # Prefer CUDA when available; CPU thread counts follow MEGADETECTOR_ORT_* env.
     sess_options = onnxruntime.SessionOptions()
     sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
     ort_threads = configure_ort_cpu_session_threads(sess_options)
     logger.info("ORT threads: %s", ort_threads)
 
+    prepare_onnxruntime_cuda()
+    providers = get_onnxruntime_providers()
+    logger.info("ORT providers: %s", providers)
+
     session = onnxruntime.InferenceSession(
-        model_path, providers=["CPUExecutionProvider"], sess_options=sess_options
+        model_path, providers=providers, sess_options=sess_options
     )
+    logger.info("ORT session providers: %s", session.get_providers())
     input_name = session.get_inputs()[0].name
 
     results: List[FrameResult] = []

@@ -1,0 +1,24 @@
+{
+  "name": "after",
+  "attempt": "experiment\\attempts\\0010-unsharp-after-resize",
+  "command": "C:\\Users\\Vlad\\cv\\its-a-trap\\.venv\\Scripts\\python.exe C:\\Users\\Vlad\\cv\\its-a-trap\\scripts\\run_md_over_data_frames.py --data-dir data --model models/md_v5a_1_3_640_640_static.onnx --batch-size 16 --confidence-threshold 0.5 --output C:\\Users\\Vlad\\cv\\its-a-trap\\experiment\\attempts\\0010-unsharp-after-resize\\after-confidences.json",
+  "output": "experiment\\attempts\\0010-unsharp-after-resize\\after-confidences.json",
+  "summary": {
+    "frame_count": 75,
+    "null_count": 0,
+    "runtime_seconds": 3.5233573999721557,
+    "fps": 21.28651495888345,
+    "threshold": 0.5,
+    "mean_confidence": 0.6360163354873657,
+    "median_confidence": 0.9037038087844849,
+    "min_confidence": 0.0,
+    "max_confidence": 0.9819605350494385,
+    "labeled_frame_count": 75,
+    "false_positive_count": 0,
+    "false_negative_count": 0,
+    "correct_hit_count": 75,
+    "false_positive_pct": 0.0,
+    "false_negative_pct": 0.0,
+    "correct_hit_pct": 100.0
+  }
+}

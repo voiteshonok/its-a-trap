@@ -1,0 +1,26 @@
+{
+  "name": "after",
+  "attempt": "experiment\\attempts\\0025-very-mild-bilateral-after-resize",
+  "command": "C:\\Users\\Vlad\\cv\\its-a-trap\\.venv\\Scripts\\python.exe C:\\Users\\Vlad\\cv\\its-a-trap\\scripts\\run_md_over_data_frames.py --data-dir data --model models/md_v5a_1_3_640_640_static.onnx --batch-size 16 --confidence-threshold 0.5 --output C:\\Users\\Vlad\\cv\\its-a-trap\\experiment\\attempts\\0025-very-mild-bilateral-after-resize\\after-confidences.json",
+  "output": "experiment\\attempts\\0025-very-mild-bilateral-after-resize\\after-confidences.json",
+  "summary": {
+    "frame_count": 75,
+    "null_count": 0,
+    "runtime_seconds": 3.770490200025961,
+    "mean_frame_processing_seconds": 0.05027320266701281,
+    "threshold": 0.5,
+    "mean_confidence": 0.6372842129071553,
+    "median_confidence": 0.901296854019165,
+    "min_confidence": 0.0,
+    "max_confidence": 0.9798266887664795,
+    "labeled_frame_count": 75,
+    "mean_confidence_positive": 0.9018172824157858,
+    "mean_confidence_negative": 0.0,
+    "false_positive_count": 0,
+    "false_negative_count": 0,
+    "correct_hit_count": 75,
+    "false_positive_pct": 0.0,
+    "false_negative_pct": 0.0,
+    "correct_hit_pct": 100.0
+  }
+}

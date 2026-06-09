@@ -1,0 +1,26 @@
+{
+  "name": "inter-lanczos4",
+  "attempt": "experiment\\attempts\\0013-resize-interpolation",
+  "command": "C:\\Users\\Vlad\\cv\\its-a-trap\\.venv\\Scripts\\python.exe C:\\Users\\Vlad\\cv\\its-a-trap\\scripts\\run_md_over_data_frames.py --data-dir data --model models/md_v5a_1_3_640_640_static.onnx --batch-size 16 --confidence-threshold 0.5 --output C:\\Users\\Vlad\\cv\\its-a-trap\\experiment\\attempts\\0013-resize-interpolation\\inter-lanczos4-confidences.json",
+  "output": "experiment\\attempts\\0013-resize-interpolation\\inter-lanczos4-confidences.json",
+  "summary": {
+    "frame_count": 75,
+    "null_count": 0,
+    "runtime_seconds": 3.5584360000211746,
+    "mean_frame_processing_seconds": 0.04744581333361566,
+    "threshold": 0.5,
+    "mean_confidence": 0.6354028336207072,
+    "median_confidence": 0.9003807306289673,
+    "min_confidence": 0.0,
+    "max_confidence": 0.9819211959838867,
+    "labeled_frame_count": 75,
+    "mean_confidence_positive": 0.8991549532368498,
+    "mean_confidence_negative": 0.0,
+    "false_positive_count": 0,
+    "false_negative_count": 0,
+    "correct_hit_count": 75,
+    "false_positive_pct": 0.0,
+    "false_negative_pct": 0.0,
+    "correct_hit_pct": 100.0
+  }
+}

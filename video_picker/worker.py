@@ -88,6 +88,7 @@ def main() -> int:
                 "model_path": os.path.abspath(md_model_path),
                 "load_seconds": md_load_s,
                 "ort_threads": getattr(md, "ort_threads", None),
+                "ort_providers": getattr(md, "providers", None),
             }
         )
 

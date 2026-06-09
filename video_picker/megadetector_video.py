@@ -13,7 +13,9 @@ from .pipeline import process_video
 from .utils import (
     configure_ort_cpu_session_threads_from_cores,
     crop_norm_xyxy_from_bgr,
+    get_onnxruntime_providers,
     load_txtset_labels_last_field,
+    prepare_onnxruntime_cuda,
     run_onnx_with_stacked_batch,
     softmax_2d,
 )
@@ -28,7 +30,22 @@ SPECIESNET_IMAGE_SIZE = 480
 logger = logging.getLogger("megadetector_video")
 
 def preprocess_bgr_to_md_input(bgr: np.ndarray) -> np.ndarray:
-    resized = cv2.resize(bgr, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
+    height, width = bgr.shape[:2]
+    scale = min(IMAGE_SIZE / width, IMAGE_SIZE / height)
+    resized_width = max(1, int(round(width * scale)))
+    resized_height = max(1, int(round(height * scale)))
+    resized_content = cv2.resize(
+        bgr, (resized_width, resized_height), interpolation=cv2.INTER_LINEAR
+    )
+
+    resized = np.full((IMAGE_SIZE, IMAGE_SIZE, 3), 114, dtype=bgr.dtype)
+    top = (IMAGE_SIZE - resized_height) // 2
+    left = (IMAGE_SIZE - resized_width) // 2
+    resized[top : top + resized_height, left : left + resized_width] = resized_content
+
+    blurred = cv2.GaussianBlur(resized, (0, 0), 1.0)
+    resized = cv2.addWeighted(resized, 1.5, blurred, -0.5, 0)
+
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     chw = np.transpose(rgb, (2, 0, 1)).astype(np.float32)
     nchw = np.expand_dims(chw, axis=0)
@@ -41,15 +58,13 @@ class SpeciesNetRunner:
         self.labels_path = labels_path
         self.labels = load_txtset_labels_last_field(labels_path)
 
-        avail = set(onnxruntime.get_available_providers())
-        providers: List[str] = []
-        if "CUDAExecutionProvider" in avail:
-            providers.append("CUDAExecutionProvider")
-        providers.append("CPUExecutionProvider")
+        prepare_onnxruntime_cuda()
+        providers = get_onnxruntime_providers()
 
         sess_options = onnxruntime.SessionOptions()
         sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
         self.session = onnxruntime.InferenceSession(model_path, providers=providers, sess_options=sess_options)
+        self.providers = self.session.get_providers()
         inp = self.session.get_inputs()[0]
         self.input_name = inp.name
         self.input_shape = inp.shape
@@ -79,10 +94,13 @@ class MegaDetectorRunner:
         sess_options = onnxruntime.SessionOptions()
         sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
         self.ort_threads = configure_ort_cpu_session_threads_from_cores(sess_options, int(cpu_cores))
+        prepare_onnxruntime_cuda()
+        providers = get_onnxruntime_providers()
         t0 = time.perf_counter()
         self.session = onnxruntime.InferenceSession(
-            model_path, providers=["CPUExecutionProvider"], sess_options=sess_options
+            model_path, providers=providers, sess_options=sess_options
         )
+        self.providers = self.session.get_providers()
         self.load_seconds = time.perf_counter() - t0
         self.input_name = self.session.get_inputs()[0].name
 
@@ -184,6 +202,7 @@ def main() -> int:
 
     md = MegaDetectorRunner(args.model, cpu_cores=int(args.batch_size))
     logger.info("ORT threads: %s", md.ort_threads)
+    logger.info("ORT providers: %s", getattr(md, "providers", None))
     logger.info("Loaded MD ONNX session in %.3fs", md.load_seconds)
 
     species_runner: SpeciesNetRunner | None = None
