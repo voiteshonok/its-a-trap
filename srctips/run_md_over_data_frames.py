@@ -33,22 +33,8 @@ IMAGE_SIZE = 640
 
 
 def preprocess_bgr_to_md_input(bgr: np.ndarray) -> np.ndarray:
-    height, width = bgr.shape[:2]
-    scale = min(IMAGE_SIZE / width, IMAGE_SIZE / height)
-    resized_width = max(1, int(round(width * scale)))
-    resized_height = max(1, int(round(height * scale)))
-    resized_content = cv2.resize(
-        bgr, (resized_width, resized_height), interpolation=cv2.INTER_LINEAR
-    )
-
-    resized = np.full((IMAGE_SIZE, IMAGE_SIZE, 3), 114, dtype=bgr.dtype)
-    top = (IMAGE_SIZE - resized_height) // 2
-    left = (IMAGE_SIZE - resized_width) // 2
-    resized[top : top + resized_height, left : left + resized_width] = resized_content
-
-    blurred = cv2.GaussianBlur(resized, (0, 0), 1.0)
-    resized = cv2.addWeighted(resized, 1.5, blurred, -0.5, 0)
-
+    bgr = cv2.GaussianBlur(bgr, (0, 0), 0.8)
+    resized = cv2.resize(bgr, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     chw = np.transpose(rgb, (2, 0, 1)).astype(np.float32)
     nchw = np.expand_dims(chw, axis=0)

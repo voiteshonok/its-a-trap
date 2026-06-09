@@ -1,0 +1,16 @@
+{
+  "runtime_seconds": 6.404994300042745,
+  "threshold": 0.5,
+  "metrics": {
+    "positive_frame_count": 210,
+    "negative_frame_count": 22,
+    "false_negative_count": 7,
+    "false_positive_count": 0,
+    "pct_correct_positive": 96.66666666666667,
+    "mean_confidence_correct_positive": 0.9034596661041523,
+    "std_confidence_correct_positive": 0.08080753242470973,
+    "pct_correct_negative": 100.0,
+    "mean_confidence_correct_negative": 0.0,
+    "std_confidence_correct_negative": 0.0
+  }
+}
