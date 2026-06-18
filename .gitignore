@@ -36,5 +36,6 @@ dist/
 Thumbs.db
 
 # Local outputs/artifacts
+experiment/results/data/
 output.json
 *.log
